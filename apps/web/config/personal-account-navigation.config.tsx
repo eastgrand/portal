@@ -1,4 +1,4 @@
-import { CreditCard, Home, User } from 'lucide-react';
+import { CreditCard, FolderKanban, Home, User } from 'lucide-react';
 import { z } from 'zod';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
@@ -18,7 +18,12 @@ const routes = [
         Icon: <Home className={iconClasses} />,
         end: true,
       },
-    ],
+      {
+        label: 'common:routes.projects',
+        path: pathsConfig.app.personalProjects,
+        Icon: <FolderKanban className={iconClasses} />,
+      },
+    ].filter(Boolean),
   },
   {
     label: 'common:routes.settings',

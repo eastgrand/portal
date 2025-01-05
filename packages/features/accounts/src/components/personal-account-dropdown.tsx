@@ -10,7 +10,7 @@ import {
   ChevronsUpDown,
   Home,
   LogOut,
-  MessageCircleQuestion,
+  //MessageCircleQuestion,
   Shield,
 } from 'lucide-react';
 
@@ -159,7 +159,7 @@ export function PersonalAccountDropdown({
           </Link>
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator />
+     {/*   <DropdownMenuSeparator />
 
         <DropdownMenuItem asChild>
           <Link
@@ -172,7 +172,7 @@ export function PersonalAccountDropdown({
               <Trans i18nKey={'common:documentation'} />
             </span>
           </Link>
-        </DropdownMenuItem>
+        </DropdownMenuItem> */}
 
         <If condition={isSuperAdmin}>
           <DropdownMenuSeparator />
