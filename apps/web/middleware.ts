@@ -3,25 +3,14 @@ import type { NextRequest } from 'next/server';
 import { NextResponse, URLPattern } from 'next/server';
 import { CsrfError, createCsrfProtect } from '@edge-csrf/nextjs';
 import { createMiddlewareClient } from '@kit/supabase/middleware-client';
+import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
 import pathsConfig from './config/paths.config';
 
 const CSRF_SECRET_COOKIE = 'csrfSecret';
 const NEXT_ACTION_HEADER = 'next-action';
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - favicon.png (favicon file)
-     * - images (public images)
-     * - assets (public assets)
-     * - api routes
-     */
-    '/((?!_next/static|_next/image|favicon.ico|favicon.png|images|assets|api).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
 };
 
 const getUser = (request: NextRequest, response: NextResponse) => {
