@@ -1,179 +1,108 @@
+import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { NextResponse, URLPattern } from 'next/server';
-import { CsrfError, createCsrfProtect } from '@edge-csrf/nextjs';
-import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
-import { createMiddlewareClient } from '@kit/supabase/middleware-client';
-import appConfig from '~/config/app.config';
-import pathsConfig from '~/config/paths.config';
+import { createClient, type User, type AuthError } from '@supabase/supabase-js';
 
-const CSRF_SECRET_COOKIE = 'csrfSecret';
-const NEXT_ACTION_HEADER = 'next-action';
+// Core configuration
+const AUTH_ROUTES = ['/auth/sign-in', '/auth/sign-up', '/auth/verify', '/auth/callback', '/auth/password-reset'];
+const PUBLIC_ROUTES = ['/blog', '/docs', '/contact', '/api', '/version', '/privacy-policy', '/terms-of-service'];
+const PROTECTED_ROUTES = ['/home', '/admin'];
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
 };
 
-const getUser = (request: NextRequest, response: NextResponse) => {
-  const supabase = createMiddlewareClient(request, response);
-  return supabase.auth.getUser();
+type AuthResponse = {
+  user: User | null;
+  error: AuthError | null;
 };
 
-export async function middleware(request: NextRequest) {
-  // Create a new response without accessing user-agent
-  const response = new NextResponse();
+async function getUser(req: NextRequest): Promise<AuthResponse> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
 
-  // Set a unique request ID for each request
-  const requestId = crypto.randomUUID();
-  response.headers.set('x-correlation-id', requestId);
-
-  // Apply CSRF protection for mutating requests
-  const csrfResponse = await withCsrfMiddleware(request, response);
-
-  // Handle patterns for specific routes
-  const handlePattern = matchUrlPattern(request.url);
-
-  // If a pattern handler exists, call it
-  if (handlePattern) {
-    const patternHandlerResponse = await handlePattern(request, csrfResponse);
-
-    // If a pattern handler returns a response, return it
-    if (patternHandlerResponse) {
-      return patternHandlerResponse;
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      detectSessionInUrl: false,
+      persistSession: false,
+      autoRefreshToken: false
     }
+  });
+
+  const accessToken = req.cookies.get('sb-access-token')?.value;
+  
+  if (!accessToken) {
+    return { user: null, error: null };
   }
 
-  // Append the action path to the request headers
-  if (isServerAction(request)) {
-    csrfResponse.headers.set('x-action-path', request.nextUrl.pathname);
-  }
-
-  return csrfResponse;
-}
-
-async function withCsrfMiddleware(
-  request: NextRequest,
-  response: NextResponse,
-) {
-  const csrfProtect = createCsrfProtect({
-    cookie: {
-      secure: appConfig.production,
-      name: CSRF_SECRET_COOKIE,
-    },
-    ignoreMethods: isServerAction(request)
-      ? ['POST']
-      : ['GET', 'HEAD', 'OPTIONS'],
+  await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: req.cookies.get('sb-refresh-token')?.value ?? '',
   });
 
   try {
-    await csrfProtect(request, response);
-    return response;
+    const { data: { user }, error } = await supabase.auth.getUser();
+    return { user, error };
   } catch (error) {
-    if (error instanceof CsrfError) {
-      return NextResponse.json('Invalid CSRF token', {
-        status: 401,
-      });
-    }
-    throw error;
+    return { user: null, error: error as AuthError };
   }
 }
 
-function isServerAction(request: NextRequest): boolean {
-  return request.headers.has(NEXT_ACTION_HEADER);
-}
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+  const requestId = crypto.randomUUID();
+  response.headers.set('x-correlation-id', requestId);
 
-async function adminMiddleware(request: NextRequest, response: NextResponse) {
-  const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
+  const pathname = request.nextUrl.pathname;
 
-  if (!isAdminPath) {
+  // Allow public routes
+  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
     return response;
   }
 
-  const {
-    data: { user },
-    error,
-  } = await getUser(request, response);
-
-  if (!user || error) {
-    return NextResponse.redirect(
-      new URL(pathsConfig.auth.signIn, request.nextUrl.origin).href,
-    );
+  // Allow auth routes
+  if (AUTH_ROUTES.some(route => pathname === route)) {
+    try {
+      const { user, error } = await getUser(request);
+      if (user && !error && pathname !== '/auth/verify') {
+        return NextResponse.redirect(new URL('/home', request.url));
+      }
+    } catch (e) {
+      // Continue to auth page if there's any error
+      console.error('Auth check failed:', e);
+    }
+    return response;
   }
 
-  const role = user?.app_metadata?.role;
+  // Check authentication for protected routes
+  if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+    try {
+      const { user, error } = await getUser(request);
 
-  if (!role || role !== 'super-admin') {
-    return NextResponse.redirect(new URL('/404', request.nextUrl.origin).href);
+      if (!user || error) {
+        // Store the attempted URL to redirect back after login
+        const redirectUrl = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+        const signInUrl = new URL('/auth/sign-in', request.url);
+        signInUrl.searchParams.set('next', redirectUrl);
+        return NextResponse.redirect(signInUrl);
+      }
+
+      // Special handling for admin routes
+      if (pathname.startsWith('/admin')) {
+        const role = user.app_metadata?.role as string | undefined;
+        if (role !== 'super-admin') {
+          return NextResponse.redirect(new URL('/404', request.url));
+        }
+      }
+    } catch (e) {
+      // Redirect to sign in if there's any error
+      console.error('Auth check failed:', e);
+      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+    }
   }
 
   return response;
-}
-
-function getPatterns() {
-  return [
-    {
-      pattern: new URLPattern({ pathname: '/admin/*?' }),
-      handler: adminMiddleware,
-    },
-    {
-      pattern: new URLPattern({ pathname: '/auth/*?' }),
-      handler: async (req: NextRequest, res: NextResponse) => {
-        const {
-          data: { user },
-        } = await getUser(req, res);
-
-        if (!user) {
-          return;
-        }
-
-        const isVerifyMfa = req.nextUrl.pathname === pathsConfig.auth.verifyMfa;
-
-        if (!isVerifyMfa) {
-          return NextResponse.redirect(
-            new URL(pathsConfig.app.home, req.nextUrl.origin).href,
-          );
-        }
-      },
-    },
-    {
-      pattern: new URLPattern({ pathname: '/home/*?' }),
-      handler: async (req: NextRequest, res: NextResponse) => {
-        const {
-          data: { user },
-        } = await getUser(req, res);
-
-        const origin = req.nextUrl.origin;
-        const next = req.nextUrl.pathname;
-
-        if (!user) {
-          const signIn = pathsConfig.auth.signIn;
-          const redirectPath = `${signIn}?next=${next}`;
-
-          return NextResponse.redirect(new URL(redirectPath, origin).href);
-        }
-
-        const supabase = createMiddlewareClient(req, res);
-        const requiresMultiFactorAuthentication =
-          await checkRequiresMultiFactorAuthentication(supabase);
-
-        if (requiresMultiFactorAuthentication) {
-          return NextResponse.redirect(
-            new URL(pathsConfig.auth.verifyMfa, origin).href,
-          );
-        }
-      },
-    },
-  ];
-}
-
-function matchUrlPattern(url: string) {
-  const patterns = getPatterns();
-  const input = url.split('?')[0];
-
-  for (const pattern of patterns) {
-    const patternResult = pattern.pattern.exec(input);
-
-    if (patternResult !== null && 'pathname' in patternResult) {
-      return pattern.handler;
-    }
-  }
 }
