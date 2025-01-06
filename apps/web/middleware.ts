@@ -1,13 +1,29 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { NextRequest } from 'next/server';
 import { NextResponse, URLPattern } from 'next/server';
-
 import { CsrfError, createCsrfProtect } from '@edge-csrf/nextjs';
+import {
+  createClient,
+  SupabaseClient,
+  SupabaseClientOptions,
+} from '@supabase/supabase-js';
 
-import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
-import { createMiddlewareClient } from '@kit/supabase/middleware-client';
+// Constants moved from config files for Edge compatibility
+const APP_CONFIG = {
+  production: process.env.NODE_ENV === 'production',
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+};
 
-import appConfig from '~/config/app.config';
-import pathsConfig from '~/config/paths.config';
+const PATHS_CONFIG = {
+  auth: {
+    signIn: '/auth/sign-in',
+    verifyMfa: '/auth/verify',
+  },
+  app: {
+    home: '/home',
+  },
+};
 
 const CSRF_SECRET_COOKIE = 'csrfSecret';
 const NEXT_ACTION_HEADER = 'next-action';
@@ -16,43 +32,115 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
 };
 
-const getUser = (request: NextRequest, response: NextResponse) => {
-  const supabase = createMiddlewareClient(request, response);
+// Define types for Supabase
+type Database = {
+  public: {
+    Tables: Record<string, unknown>;
+  };
+  auth: {
+    Tables: {
+      users: {
+        Row: {
+          id: string;
+          app_metadata?: {
+            mfa_enabled?: boolean;
+            requires_mfa?: boolean;
+            role?: string;
+          };
+        };
+      };
+    };
+  };
+};
 
+type EdgeSupabaseClient = SupabaseClient<Database>;
+type EdgeClientOptions = SupabaseClientOptions<'public'>;
+
+// Define the return type for pattern handlers
+type PatternHandler = (
+  request: NextRequest,
+  response: NextResponse
+) => Promise<NextResponse | undefined | void>;
+
+// Edge-compatible Supabase client creation
+function createEdgeClient(request: NextRequest) {
+  const options: EdgeClientOptions = {
+    auth: {
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        cookie: request.headers.get('cookie') ?? '',
+      },
+    },
+  };
+
+  const client = createClient(
+    APP_CONFIG.supabaseUrl,
+    APP_CONFIG.supabaseAnonKey,
+    options
+  ) as EdgeSupabaseClient;
+
+  return client;
+}
+
+// Edge-compatible MFA check
+async function checkRequiresMultiFactorAuthentication(
+  client: EdgeSupabaseClient
+): Promise<boolean> {
+  try {
+    const { data: { user }, error } = await client.auth.getUser();
+    
+    if (error) {
+      throw error;
+    }
+
+    if (!user) {
+      return false;
+    }
+
+    // Check if MFA is required based on user metadata
+    const requiresMfa = user.app_metadata?.requires_mfa ?? false;
+    return requiresMfa;
+  } catch (error) {
+    console.error('MFA check error:', error);
+    return false;
+  }
+}
+
+const getUser = async (request: NextRequest) => {
+  const supabase = createEdgeClient(request);
   return supabase.auth.getUser();
 };
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
-  // set a unique request ID for each request
-  // this helps us log and trace requests
+  // Set a unique request ID for each request
   setRequestId(request);
 
-  // apply CSRF protection for mutating requests
+  // Apply CSRF protection for mutating requests
   const csrfResponse = await withCsrfMiddleware(request, response);
 
-  // handle patterns for specific routes
+  // Handle patterns for specific routes
   const handlePattern = matchUrlPattern(request.url);
 
-  // if a pattern handler exists, call it
+  // If a pattern handler exists, call it
   if (handlePattern) {
     const patternHandlerResponse = await handlePattern(request, csrfResponse);
 
-    // if a pattern handler returns a response, return it
+    // If a pattern handler returns a response, return it
     if (patternHandlerResponse) {
       return patternHandlerResponse;
     }
   }
 
-  // append the action path to the request headers
-  // which is useful for knowing the action path in server actions
+  // Append the action path to the request headers
   if (isServerAction(request)) {
     csrfResponse.headers.set('x-action-path', request.nextUrl.pathname);
   }
 
-  // if no pattern handler returned a response,
-  // return the session response
   return csrfResponse;
 }
 
@@ -60,44 +148,36 @@ async function withCsrfMiddleware(
   request: NextRequest,
   response = new NextResponse(),
 ) {
-  // set up CSRF protection
   const csrfProtect = createCsrfProtect({
     cookie: {
-      secure: appConfig.production,
+      secure: APP_CONFIG.production,
       name: CSRF_SECRET_COOKIE,
     },
-    // ignore CSRF errors for server actions since protection is built-in
     ignoreMethods: isServerAction(request)
       ? ['POST']
-      : // always ignore GET, HEAD, and OPTIONS requests
-        ['GET', 'HEAD', 'OPTIONS'],
+      : ['GET', 'HEAD', 'OPTIONS'],
   });
 
   try {
     await csrfProtect(request, response);
-
     return response;
   } catch (error) {
-    // if there is a CSRF error, return a 403 response
     if (error instanceof CsrfError) {
       return NextResponse.json('Invalid CSRF token', {
         status: 401,
       });
     }
-
     throw error;
   }
 }
 
 function isServerAction(request: NextRequest) {
-  const headers = new Headers(request.headers);
-
-  return headers.has(NEXT_ACTION_HEADER);
+  return request.headers.has(NEXT_ACTION_HEADER);
 }
 
 async function adminMiddleware(request: NextRequest, response: NextResponse) {
   const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
-
+  
   if (!isAdminPath) {
     return response;
   }
@@ -105,31 +185,27 @@ async function adminMiddleware(request: NextRequest, response: NextResponse) {
   const {
     data: { user },
     error,
-  } = await getUser(request, response);
+  } = await getUser(request);
 
-  // If user is not logged in, redirect to sign in page.
-  // This should never happen, but just in case.
   if (!user || error) {
     return NextResponse.redirect(
-      new URL(pathsConfig.auth.signIn, request.nextUrl.origin).href,
+      new URL(PATHS_CONFIG.auth.signIn, request.nextUrl.origin).href,
     );
   }
 
-  const role = user?.app_metadata.role;
+  const role = user?.app_metadata?.role;
 
-  // If user is not an admin, redirect to 404 page.
   if (!role || role !== 'super-admin') {
     return NextResponse.redirect(new URL('/404', request.nextUrl.origin).href);
   }
 
-  // in all other cases, return the response
   return response;
 }
 
-/**
- * Define URL patterns and their corresponding handlers.
- */
-function getPatterns() {
+function getPatterns(): Array<{
+  pattern: URLPattern;
+  handler: PatternHandler;
+}> {
   return [
     {
       pattern: new URLPattern({ pathname: '/admin/*?' }),
@@ -137,55 +213,48 @@ function getPatterns() {
     },
     {
       pattern: new URLPattern({ pathname: '/auth/*?' }),
-      handler: async (req: NextRequest, res: NextResponse) => {
+      handler: async (req: NextRequest, _res: NextResponse) => {
         const {
           data: { user },
-        } = await getUser(req, res);
+        } = await getUser(req);
 
-        // the user is logged out, so we don't need to do anything
         if (!user) {
           return;
         }
 
-        // check if we need to verify MFA (user is authenticated but needs to verify MFA)
-        const isVerifyMfa = req.nextUrl.pathname === pathsConfig.auth.verifyMfa;
+        const isVerifyMfa = req.nextUrl.pathname === PATHS_CONFIG.auth.verifyMfa;
 
-        // If user is logged in and does not need to verify MFA,
-        // redirect to home page.
         if (!isVerifyMfa) {
           return NextResponse.redirect(
-            new URL(pathsConfig.app.home, req.nextUrl.origin).href,
+            new URL(PATHS_CONFIG.app.home, req.nextUrl.origin).href,
           );
         }
       },
     },
     {
       pattern: new URLPattern({ pathname: '/home/*?' }),
-      handler: async (req: NextRequest, res: NextResponse) => {
+      handler: async (req: NextRequest, _res: NextResponse) => {
         const {
           data: { user },
-        } = await getUser(req, res);
+        } = await getUser(req);
 
         const origin = req.nextUrl.origin;
         const next = req.nextUrl.pathname;
 
-        // If user is not logged in, redirect to sign in page.
         if (!user) {
-          const signIn = pathsConfig.auth.signIn;
+          const signIn = PATHS_CONFIG.auth.signIn;
           const redirectPath = `${signIn}?next=${next}`;
 
           return NextResponse.redirect(new URL(redirectPath, origin).href);
         }
 
-        const supabase = createMiddlewareClient(req, res);
-
+        const supabase = createEdgeClient(req);
         const requiresMultiFactorAuthentication =
           await checkRequiresMultiFactorAuthentication(supabase);
 
-        // If user requires multi-factor authentication, redirect to MFA page.
         if (requiresMultiFactorAuthentication) {
           return NextResponse.redirect(
-            new URL(pathsConfig.auth.verifyMfa, origin).href,
+            new URL(PATHS_CONFIG.auth.verifyMfa, origin).href,
           );
         }
       },
@@ -193,11 +262,7 @@ function getPatterns() {
   ];
 }
 
-/**
- * Match URL patterns to specific handlers.
- * @param url
- */
-function matchUrlPattern(url: string) {
+function matchUrlPattern(url: string): PatternHandler | undefined {
   const patterns = getPatterns();
   const input = url.split('?')[0];
 
@@ -208,12 +273,10 @@ function matchUrlPattern(url: string) {
       return pattern.handler;
     }
   }
+  
+  return undefined;
 }
 
-/**
- * Set a unique request ID for each request.
- * @param request
- */
 function setRequestId(request: Request) {
   request.headers.set('x-correlation-id', crypto.randomUUID());
 }
