@@ -13,10 +13,10 @@ export const config = {
 
 const getUser = async (request: NextRequest, response: NextResponse) => {
   const supabase = createMiddlewareClient({ req: request, res: response });
-  const { data, error } = await supabase.auth.getSession();
+  const sessionResponse = await supabase.auth.getUser();
   return { 
-    data: { user: data.session?.user }, 
-    error 
+    data: { user: sessionResponse.data.user }, 
+    error: sessionResponse.error 
   };
 };
 

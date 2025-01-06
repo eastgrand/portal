@@ -11,21 +11,22 @@ const ASSURANCE_LEVEL_2 = 'aal2';
 export async function checkRequiresMultiFactorAuthentication(
   client: SupabaseClient,
 ) {
-  // Suppress the getSession warning. Remove when the issue is fixed.
-  // https://github.com/supabase/auth-js/issues/873
-  // @ts-expect-error: suppressGetSessionWarning is not part of the public API
-  client.auth.suppressGetSessionWarning = true;
+  try {
+    const { data: userData } = await client.auth.getUser();
+    const userId = userData.user?.id ?? '';
+    
+    const { data, error } = await client.auth.admin.getUserById(userId);
 
-  const assuranceLevel = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (error || !data?.user) {
+      return false;
+    }
 
-  // @ts-expect-error: suppressGetSessionWarning is not part of the public API
-  client.auth.suppressGetSessionWarning = false;
+    const currentLevel = data.user.app_metadata?.mfa_verified ? ASSURANCE_LEVEL_2 : 'aal1';
+    const nextLevel = data.user.app_metadata?.requires_mfa ? ASSURANCE_LEVEL_2 : currentLevel;
 
-  if (assuranceLevel.error) {
-    throw new Error(assuranceLevel.error.message);
+    return nextLevel === ASSURANCE_LEVEL_2 && nextLevel !== currentLevel;
+  } catch (error) {
+    console.error('Error checking MFA status:', error);
+    return false;
   }
-
-  const { nextLevel, currentLevel } = assuranceLevel.data;
-
-  return nextLevel === ASSURANCE_LEVEL_2 && nextLevel !== currentLevel;
 }
