@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Explicitly tell Next.js this is an edge middleware
+export const runtime = 'experimental-edge';
+
 export const config = {
   matcher: [
     /*
@@ -15,23 +18,16 @@ export const config = {
 };
 
 export async function middleware(request: NextRequest) {
-  try {
-    // Create a response object
-    const response = NextResponse.next();
-    
-    // Get auth cookie
-    const authCookie = request.cookies.get('sb-access-token');
-    
-    // If no auth cookie, just continue
-    if (!authCookie) {
-      return response;
-    }
-
+  // Create a response object
+  const response = NextResponse.next();
+  
+  // Get auth cookie
+  const authCookie = request.cookies.get('sb-access-token');
+  
+  // If no auth cookie, just continue
+  if (!authCookie) {
     return response;
-
-  } catch (error) {
-    console.error('Middleware error:', error);
-    // On error, allow the request to continue
-    return NextResponse.next();
   }
+
+  return response;
 }
