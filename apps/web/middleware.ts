@@ -8,7 +8,7 @@ import {
   SupabaseClientOptions,
 } from '@supabase/supabase-js';
 
-export const runtime = 'edge';
+export const runtime = 'experimental-edge';
 
 // Constants moved from config files for Edge compatibility
 const APP_CONFIG = {
