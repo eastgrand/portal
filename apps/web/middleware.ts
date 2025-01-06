@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { NextRequest } from 'next/server';
 import { NextResponse, URLPattern } from 'next/server';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { CsrfError, createCsrfProtect } from '@edge-csrf/nextjs';
-import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
+import { createMiddlewareClient } from '@kit/supabase/middleware-client';
 import pathsConfig from './config/paths.config';
 
 const CSRF_SECRET_COOKIE = 'csrfSecret';
@@ -26,7 +25,7 @@ export const config = {
 };
 
 const getUser = (request: NextRequest, response: NextResponse) => {
-  const supabase = createMiddlewareClient({ req: request, res: response });
+  const supabase = createMiddlewareClient(request, response);
   return supabase.auth.getUser();
 };
 
@@ -129,7 +128,7 @@ function getPatterns() {
           return NextResponse.redirect(new URL(redirectPath, origin).href);
         }
 
-        const supabase = createMiddlewareClient({ req, res });
+        const supabase = createMiddlewareClient(req, res);
         const { data: factors } = await supabase.auth.mfa.listFactors();
         const requiresMultiFactorAuthentication = (factors?.all?.length ?? 0) > 0;
 
