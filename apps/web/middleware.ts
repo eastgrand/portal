@@ -11,9 +11,13 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
 };
 
-const getUser = (request: NextRequest, response: NextResponse) => {
+const getUser = async (request: NextRequest, response: NextResponse) => {
   const supabase = createMiddlewareClient({ req: request, res: response });
-  return supabase.auth.getUser();
+  const { data: { session }, error } = await supabase.auth.getSession();
+  return { 
+    data: { user: session?.user }, 
+    error 
+  };
 };
 
 async function withCsrfMiddleware(
