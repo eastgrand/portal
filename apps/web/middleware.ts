@@ -22,26 +22,25 @@ async function withCsrfMiddleware(
   request: NextRequest,
   response = new NextResponse(),
 ) {
-  const csrfProtect = createCsrfProtect({
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      name: CSRF_SECRET_COOKIE,
-    },
-    ignoreMethods: isServerAction(request)
-      ? ['POST']
-      : ['GET', 'HEAD', 'OPTIONS'],
-  });
-
   try {
+    const csrfProtect = createCsrfProtect({
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        name: CSRF_SECRET_COOKIE,
+      },
+      ignoreMethods: isServerAction(request)
+        ? ['POST']
+        : ['GET', 'HEAD', 'OPTIONS'],
+    });
+
     await csrfProtect(request, response);
     return response;
   } catch (error) {
+    console.error('CSRF middleware error:', error);
     if (error instanceof CsrfError) {
-      return NextResponse.json('Invalid CSRF token', {
-        status: 401,
-      });
+      return NextResponse.json('Invalid CSRF token', { status: 401 });
     }
-    throw error;
+    return NextResponse.next();
   }
 }
 
