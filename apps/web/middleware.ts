@@ -8,6 +8,8 @@ import {
   SupabaseClientOptions,
 } from '@supabase/supabase-js';
 
+export const runtime = 'edge';
+
 // Constants moved from config files for Edge compatibility
 const APP_CONFIG = {
   production: process.env.NODE_ENV === 'production',
