@@ -1,31 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { NextRequest } from 'next/server';
 import { NextResponse, URLPattern } from 'next/server';
 import { CsrfError, createCsrfProtect } from '@edge-csrf/nextjs';
-import {
-  createClient,
-  SupabaseClient,
-  SupabaseClientOptions,
-} from '@supabase/supabase-js';
-
-export const runtime = 'experimental-edge';
-
-// Constants moved from config files for Edge compatibility
-const APP_CONFIG = {
-  production: process.env.NODE_ENV === 'production',
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-};
-
-const PATHS_CONFIG = {
-  auth: {
-    signIn: '/auth/sign-in',
-    verifyMfa: '/auth/verify',
-  },
-  app: {
-    home: '/home',
-  },
-};
+import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
+import { createMiddlewareClient } from '@kit/supabase/middleware-client';
+import appConfig from '~/config/app.config';
+import pathsConfig from '~/config/paths.config';
 
 const CSRF_SECRET_COOKIE = 'csrfSecret';
 const NEXT_ACTION_HEADER = 'next-action';
@@ -34,93 +13,18 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
 };
 
-// Define types for Supabase
-type Database = {
-  public: {
-    Tables: Record<string, unknown>;
-  };
-  auth: {
-    Tables: {
-      users: {
-        Row: {
-          id: string;
-          app_metadata?: {
-            mfa_enabled?: boolean;
-            requires_mfa?: boolean;
-            role?: string;
-          };
-        };
-      };
-    };
-  };
-};
-
-type EdgeSupabaseClient = SupabaseClient<Database>;
-type EdgeClientOptions = SupabaseClientOptions<'public'>;
-
-// Define the return type for pattern handlers
-type PatternHandler = (
-  request: NextRequest,
-  response: NextResponse
-) => Promise<NextResponse | undefined | void>;
-
-// Edge-compatible Supabase client creation
-function createEdgeClient(request: NextRequest) {
-  const options: EdgeClientOptions = {
-    auth: {
-      persistSession: false,
-      detectSessionInUrl: false,
-    },
-    global: {
-      headers: {
-        cookie: request.headers.get('cookie') ?? '',
-      },
-    },
-  };
-
-  const client = createClient(
-    APP_CONFIG.supabaseUrl,
-    APP_CONFIG.supabaseAnonKey,
-    options
-  ) as EdgeSupabaseClient;
-
-  return client;
-}
-
-// Edge-compatible MFA check
-async function checkRequiresMultiFactorAuthentication(
-  client: EdgeSupabaseClient
-): Promise<boolean> {
-  try {
-    const { data: { user }, error } = await client.auth.getUser();
-    
-    if (error) {
-      throw error;
-    }
-
-    if (!user) {
-      return false;
-    }
-
-    // Check if MFA is required based on user metadata
-    const requiresMfa = user.app_metadata?.requires_mfa ?? false;
-    return requiresMfa;
-  } catch (error) {
-    console.error('MFA check error:', error);
-    return false;
-  }
-}
-
-const getUser = async (request: NextRequest) => {
-  const supabase = createEdgeClient(request);
+const getUser = (request: NextRequest, response: NextResponse) => {
+  const supabase = createMiddlewareClient(request, response);
   return supabase.auth.getUser();
 };
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next();
+  // Create a new response without accessing user-agent
+  const response = new NextResponse();
 
   // Set a unique request ID for each request
-  setRequestId(request);
+  const requestId = crypto.randomUUID();
+  response.headers.set('x-correlation-id', requestId);
 
   // Apply CSRF protection for mutating requests
   const csrfResponse = await withCsrfMiddleware(request, response);
@@ -148,11 +52,11 @@ export async function middleware(request: NextRequest) {
 
 async function withCsrfMiddleware(
   request: NextRequest,
-  response = new NextResponse(),
+  response: NextResponse,
 ) {
   const csrfProtect = createCsrfProtect({
     cookie: {
-      secure: APP_CONFIG.production,
+      secure: appConfig.production,
       name: CSRF_SECRET_COOKIE,
     },
     ignoreMethods: isServerAction(request)
@@ -173,13 +77,13 @@ async function withCsrfMiddleware(
   }
 }
 
-function isServerAction(request: NextRequest) {
+function isServerAction(request: NextRequest): boolean {
   return request.headers.has(NEXT_ACTION_HEADER);
 }
 
 async function adminMiddleware(request: NextRequest, response: NextResponse) {
   const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
-  
+
   if (!isAdminPath) {
     return response;
   }
@@ -187,11 +91,11 @@ async function adminMiddleware(request: NextRequest, response: NextResponse) {
   const {
     data: { user },
     error,
-  } = await getUser(request);
+  } = await getUser(request, response);
 
   if (!user || error) {
     return NextResponse.redirect(
-      new URL(PATHS_CONFIG.auth.signIn, request.nextUrl.origin).href,
+      new URL(pathsConfig.auth.signIn, request.nextUrl.origin).href,
     );
   }
 
@@ -204,10 +108,7 @@ async function adminMiddleware(request: NextRequest, response: NextResponse) {
   return response;
 }
 
-function getPatterns(): Array<{
-  pattern: URLPattern;
-  handler: PatternHandler;
-}> {
+function getPatterns() {
   return [
     {
       pattern: new URLPattern({ pathname: '/admin/*?' }),
@@ -215,48 +116,48 @@ function getPatterns(): Array<{
     },
     {
       pattern: new URLPattern({ pathname: '/auth/*?' }),
-      handler: async (req: NextRequest, _res: NextResponse) => {
+      handler: async (req: NextRequest, res: NextResponse) => {
         const {
           data: { user },
-        } = await getUser(req);
+        } = await getUser(req, res);
 
         if (!user) {
           return;
         }
 
-        const isVerifyMfa = req.nextUrl.pathname === PATHS_CONFIG.auth.verifyMfa;
+        const isVerifyMfa = req.nextUrl.pathname === pathsConfig.auth.verifyMfa;
 
         if (!isVerifyMfa) {
           return NextResponse.redirect(
-            new URL(PATHS_CONFIG.app.home, req.nextUrl.origin).href,
+            new URL(pathsConfig.app.home, req.nextUrl.origin).href,
           );
         }
       },
     },
     {
       pattern: new URLPattern({ pathname: '/home/*?' }),
-      handler: async (req: NextRequest, _res: NextResponse) => {
+      handler: async (req: NextRequest, res: NextResponse) => {
         const {
           data: { user },
-        } = await getUser(req);
+        } = await getUser(req, res);
 
         const origin = req.nextUrl.origin;
         const next = req.nextUrl.pathname;
 
         if (!user) {
-          const signIn = PATHS_CONFIG.auth.signIn;
+          const signIn = pathsConfig.auth.signIn;
           const redirectPath = `${signIn}?next=${next}`;
 
           return NextResponse.redirect(new URL(redirectPath, origin).href);
         }
 
-        const supabase = createEdgeClient(req);
+        const supabase = createMiddlewareClient(req, res);
         const requiresMultiFactorAuthentication =
           await checkRequiresMultiFactorAuthentication(supabase);
 
         if (requiresMultiFactorAuthentication) {
           return NextResponse.redirect(
-            new URL(PATHS_CONFIG.auth.verifyMfa, origin).href,
+            new URL(pathsConfig.auth.verifyMfa, origin).href,
           );
         }
       },
@@ -264,7 +165,7 @@ function getPatterns(): Array<{
   ];
 }
 
-function matchUrlPattern(url: string): PatternHandler | undefined {
+function matchUrlPattern(url: string) {
   const patterns = getPatterns();
   const input = url.split('?')[0];
 
@@ -275,10 +176,4 @@ function matchUrlPattern(url: string): PatternHandler | undefined {
       return pattern.handler;
     }
   }
-  
-  return undefined;
-}
-
-function setRequestId(request: Request) {
-  request.headers.set('x-correlation-id', crypto.randomUUID());
 }
