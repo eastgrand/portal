@@ -1,108 +1,170 @@
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createClient, type User, type AuthError } from '@supabase/supabase-js';
+import { NextResponse, URLPattern } from 'next/server';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { CsrfError, createCsrfProtect } from '@edge-csrf/nextjs';
+import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
 
-// Core configuration
-const AUTH_ROUTES = ['/auth/sign-in', '/auth/sign-up', '/auth/verify', '/auth/callback', '/auth/password-reset'];
-const PUBLIC_ROUTES = ['/blog', '/docs', '/contact', '/api', '/version', '/privacy-policy', '/terms-of-service'];
-const PROTECTED_ROUTES = ['/home', '/admin'];
+const CSRF_SECRET_COOKIE = 'csrfSecret';
+const NEXT_ACTION_HEADER = 'next-action';
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
 };
 
-type AuthResponse = {
-  user: User | null;
-  error: AuthError | null;
+const getUser = (request: NextRequest, response: NextResponse) => {
+  const supabase = createMiddlewareClient({ req: request, res: response });
+  return supabase.auth.getUser();
 };
 
-async function getUser(req: NextRequest): Promise<AuthResponse> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      detectSessionInUrl: false,
-      persistSession: false,
-      autoRefreshToken: false
-    }
-  });
-
-  const accessToken = req.cookies.get('sb-access-token')?.value;
-  
-  if (!accessToken) {
-    return { user: null, error: null };
-  }
-
-  await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: req.cookies.get('sb-refresh-token')?.value ?? '',
+async function withCsrfMiddleware(
+  request: NextRequest,
+  response = new NextResponse(),
+) {
+  const csrfProtect = createCsrfProtect({
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      name: CSRF_SECRET_COOKIE,
+    },
+    ignoreMethods: isServerAction(request)
+      ? ['POST']
+      : ['GET', 'HEAD', 'OPTIONS'],
   });
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    return { user, error };
+    await csrfProtect(request, response);
+    return response;
   } catch (error) {
-    return { user: null, error: error as AuthError };
+    if (error instanceof CsrfError) {
+      return NextResponse.json('Invalid CSRF token', {
+        status: 401,
+      });
+    }
+    throw error;
+  }
+}
+
+function isServerAction(request: NextRequest): boolean {
+  return request.headers.has(NEXT_ACTION_HEADER);
+}
+
+async function adminMiddleware(request: NextRequest, response: NextResponse) {
+  const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
+
+  if (!isAdminPath) {
+    return response;
+  }
+
+  const {
+    data: { user },
+    error,
+  } = await getUser(request, response);
+
+  if (!user || error) {
+    return NextResponse.redirect(
+      new URL('/auth/sign-in', request.nextUrl.origin).href,
+    );
+  }
+
+  const role = user?.app_metadata?.role;
+
+  if (!role || role !== 'super-admin') {
+    return NextResponse.redirect(new URL('/404', request.nextUrl.origin).href);
+  }
+
+  return response;
+}
+
+function getPatterns() {
+  return [
+    {
+      pattern: new URLPattern({ pathname: '/admin/*?' }),
+      handler: adminMiddleware,
+    },
+    {
+      pattern: new URLPattern({ pathname: '/auth/*?' }),
+      handler: async (req: NextRequest, res: NextResponse) => {
+        const {
+          data: { user },
+        } = await getUser(req, res);
+
+        if (!user) {
+          return;
+        }
+
+        const isVerifyMfa = req.nextUrl.pathname === '/auth/verify';
+
+        if (!isVerifyMfa) {
+          return NextResponse.redirect(
+            new URL('/home', req.nextUrl.origin).href,
+          );
+        }
+      },
+    },
+    {
+      pattern: new URLPattern({ pathname: '/home/*?' }),
+      handler: async (req: NextRequest, res: NextResponse) => {
+        const {
+          data: { user },
+        } = await getUser(req, res);
+
+        const origin = req.nextUrl.origin;
+        const next = req.nextUrl.pathname;
+
+        if (!user) {
+          const redirectPath = `/auth/sign-in?next=${next}`;
+          return NextResponse.redirect(new URL(redirectPath, origin).href);
+        }
+
+        const supabase = createMiddlewareClient({ req, res });
+        const requiresMultiFactorAuthentication =
+          await checkRequiresMultiFactorAuthentication(supabase);
+
+        if (requiresMultiFactorAuthentication) {
+          return NextResponse.redirect(
+            new URL('/auth/verify', origin).href,
+          );
+        }
+      },
+    },
+  ];
+}
+
+function matchUrlPattern(url: string) {
+  const patterns = getPatterns();
+  const input = url.split('?')[0];
+
+  for (const pattern of patterns) {
+    const patternResult = pattern.pattern.exec(input);
+    if (patternResult !== null && 'pathname' in patternResult) {
+      return pattern.handler;
+    }
   }
 }
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
+  
+  // Set request ID
   const requestId = crypto.randomUUID();
   response.headers.set('x-correlation-id', requestId);
 
-  const pathname = request.nextUrl.pathname;
+  // Apply CSRF protection
+  const csrfResponse = await withCsrfMiddleware(request, response);
 
-  // Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname.startsWith(route))) {
-    return response;
-  }
+  // Handle patterns for specific routes
+  const handlePattern = matchUrlPattern(request.url);
 
-  // Allow auth routes
-  if (AUTH_ROUTES.some(route => pathname === route)) {
-    try {
-      const { user, error } = await getUser(request);
-      if (user && !error && pathname !== '/auth/verify') {
-        return NextResponse.redirect(new URL('/home', request.url));
-      }
-    } catch (e) {
-      // Continue to auth page if there's any error
-      console.error('Auth check failed:', e);
-    }
-    return response;
-  }
-
-  // Check authentication for protected routes
-  if (PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
-    try {
-      const { user, error } = await getUser(request);
-
-      if (!user || error) {
-        // Store the attempted URL to redirect back after login
-        const redirectUrl = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-        const signInUrl = new URL('/auth/sign-in', request.url);
-        signInUrl.searchParams.set('next', redirectUrl);
-        return NextResponse.redirect(signInUrl);
-      }
-
-      // Special handling for admin routes
-      if (pathname.startsWith('/admin')) {
-        const role = user.app_metadata?.role as string | undefined;
-        if (role !== 'super-admin') {
-          return NextResponse.redirect(new URL('/404', request.url));
-        }
-      }
-    } catch (e) {
-      // Redirect to sign in if there's any error
-      console.error('Auth check failed:', e);
-      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+  if (handlePattern) {
+    const patternHandlerResponse = await handlePattern(request, csrfResponse);
+    if (patternHandlerResponse) {
+      return patternHandlerResponse;
     }
   }
 
-  return response;
+  // Append action path for server actions
+  if (isServerAction(request)) {
+    csrfResponse.headers.set('x-action-path', request.nextUrl.pathname);
+  }
+
+  return csrfResponse;
 }
