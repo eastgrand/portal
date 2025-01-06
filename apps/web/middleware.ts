@@ -1,28 +1,37 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|images|assets|api).*)',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 };
 
 export async function middleware(request: NextRequest) {
   try {
+    // Create a response object
     const response = NextResponse.next();
     
-    // Get session from cookie
-    const authCookie = request.cookies.get('sb-access-token')?.value;
+    // Get auth cookie
+    const authCookie = request.cookies.get('sb-access-token');
+    
+    // If no auth cookie, just continue
     if (!authCookie) {
       return response;
     }
 
-    // Skip MFA check for now since it's causing issues in Edge runtime
     return response;
 
   } catch (error) {
     console.error('Middleware error:', error);
+    // On error, allow the request to continue
     return NextResponse.next();
   }
 }
