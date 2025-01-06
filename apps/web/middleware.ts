@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 // Explicitly set middleware to run at the edge
 export const config = {
   runtime: 'experimental-edge',
-  regions: ['all'],
+  regions: ['iad1'],
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
