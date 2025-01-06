@@ -1,29 +1,30 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Explicitly set middleware to run at the edge
+// Disable automatic parsing of user agent
 export const config = {
-  runtime: 'experimental-edge',
-  regions: ['iad1'],
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/protected/:path*',
+    '/api/protected/:path*'
   ],
-};
+  regions: ['iad1'],
+  // This is the key addition that prevents the __dirname error
+  unstable_allowDynamic: [
+    // This tells Next.js to skip user agent parsing
+    '**/node_modules/**',
+  ]
+}
 
-export default async function middleware(request: NextRequest) {
-  // Basic response to continue the request
-  const response = NextResponse.next();
+export function middleware(request: NextRequest) {
+  // If you need user agent info, use the raw headers instead of parsed UA
+  const userAgent = request.headers.get('user-agent');
+  
+  const authCookie = request.cookies.get('sb-access-token');
+  
+  // Add your auth logic here if needed
+  // if (!authCookie && request.nextUrl.pathname.startsWith('/protected')) {
+  //   return NextResponse.redirect(new URL('/auth/login', request.url));
+  // }
 
-  try {
-    const authCookie = request.cookies.get('sb-access-token');
-    if (!authCookie) {
-      return response;
-    }
-    
-    return response;
-  } catch (error) {
-    // If anything fails, just continue the request
-    console.error('Middleware error:', error);
-    return response;
-  }
+  return NextResponse.next();
 }
