@@ -24,10 +24,12 @@ const INTERNAL_PACKAGES = [
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
+  runtime: 'experimental-edge',
   /** Enables hot reloading for local packages without a build step */
   transpilePackages: INTERNAL_PACKAGES,
   images: {
     remotePatterns: getRemotePatterns(),
+    unoptimized: true,
   },
   logging: {
     fetches: {
@@ -56,6 +58,10 @@ const config = {
       'date-fns',
       ...INTERNAL_PACKAGES,
     ],
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+    serverComponentsExternalPackages: [],
   },
   modularizeImports: {
     lodash: {

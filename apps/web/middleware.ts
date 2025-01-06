@@ -1,33 +1,31 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Explicitly tell Next.js this is an edge middleware
-export const runtime = 'experimental-edge';
-
+// Explicitly set middleware to run at the edge
 export const config = {
+  runtime: 'experimental-edge',
+  regions: ['all'],
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    // Skip all internal paths (_next)
+    // Skip all static files
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
 
-export async function middleware(request: NextRequest) {
-  // Create a response object
+export default async function middleware(request: NextRequest) {
+  // Basic response to continue the request
   const response = NextResponse.next();
-  
-  // Get auth cookie
-  const authCookie = request.cookies.get('sb-access-token');
-  
-  // If no auth cookie, just continue
-  if (!authCookie) {
+
+  try {
+    const authCookie = request.cookies.get('sb-access-token');
+    if (!authCookie) {
+      return response;
+    }
+    
+    return response;
+  } catch (error) {
+    // If anything fails, just continue the request
+    console.error('Middleware error:', error);
     return response;
   }
-
-  return response;
 }
