@@ -1,8 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // packages/supabase/src/check-requires-mfa.ts
 import type { SupabaseClient } from '@supabase/supabase-js';
-
-const ASSURANCE_LEVEL_2 = 'aal2';
 
 /**
  * @name checkRequiresMultiFactorAuthentication
@@ -13,14 +10,13 @@ export async function checkRequiresMultiFactorAuthentication(
   client: SupabaseClient,
 ) {
   try {
-    const sessionResult = await client.auth.getUser();
+    const { data, error } = await client.auth.getSession();
     
-    if (sessionResult.error || !sessionResult.data.user) {
+    if (error || !data.session?.user) {
       return false;
     }
 
-    // Check MFA status from user metadata
-    const user = sessionResult.data.user;
+    const user = data.session.user;
     const mfaEnabled = user.app_metadata?.mfa_enabled;
     const mfaVerified = user.app_metadata?.mfa_verified;
 
