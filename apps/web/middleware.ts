@@ -10,7 +10,19 @@ const CSRF_SECRET_COOKIE = 'csrfSecret';
 const NEXT_ACTION_HEADER = 'next-action';
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - favicon.png (favicon file)
+     * - images (public images)
+     * - assets (public assets)
+     * - api routes
+     */
+    '/((?!_next/static|_next/image|favicon.ico|favicon.png|images|assets|api).*)',
+  ],
 };
 
 const getUser = (request: NextRequest, response: NextResponse) => {
