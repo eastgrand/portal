@@ -3,6 +3,7 @@ import { NextResponse, URLPattern } from 'next/server';
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { CsrfError, createCsrfProtect } from '@edge-csrf/nextjs';
 import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
+import pathsConfig from './config/paths.config';
 
 const CSRF_SECRET_COOKIE = 'csrfSecret';
 const NEXT_ACTION_HEADER = 'next-action';
@@ -11,14 +12,9 @@ export const config = {
   matcher: ['/((?!_next/static|_next/image|images|locales|assets|api/*).*)'],
 };
 
-const getUser = async (request: NextRequest, response: NextResponse) => {
+const getUser = (request: NextRequest, response: NextResponse) => {
   const supabase = createMiddlewareClient({ req: request, res: response });
-  const { data, error } = await supabase.auth.getSession();
-  
-  return { 
-    data: { user: data.session?.user }, 
-    error 
-  };
+  return supabase.auth.getUser();
 };
 
 async function withCsrfMiddleware(
@@ -116,17 +112,18 @@ function getPatterns() {
         const next = req.nextUrl.pathname;
 
         if (!user) {
-          const redirectPath = `/auth/sign-in?next=${next}`;
+          const signIn = pathsConfig.auth.signIn;
+          const redirectPath = `${signIn}?next=${next}`;
           return NextResponse.redirect(new URL(redirectPath, origin).href);
         }
 
         const supabase = createMiddlewareClient({ req, res });
-        const requiresMultiFactorAuthentication =
-          await checkRequiresMultiFactorAuthentication(supabase);
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const requiresMultiFactorAuthentication = (factors?.all?.length ?? 0) > 0;
 
         if (requiresMultiFactorAuthentication) {
           return NextResponse.redirect(
-            new URL('/auth/verify', origin).href,
+            new URL(pathsConfig.auth.verifyMfa, origin).href,
           );
         }
       },
