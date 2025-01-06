@@ -6,9 +6,7 @@ export const config = {
   runtime: 'experimental-edge',
   regions: ['all'],
   matcher: [
-    // Skip all internal paths (_next)
-    // Skip all static files
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
 
