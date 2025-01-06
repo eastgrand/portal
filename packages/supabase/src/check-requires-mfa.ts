@@ -13,14 +13,14 @@ export async function checkRequiresMultiFactorAuthentication(
   client: SupabaseClient,
 ) {
   try {
-    const { data, error } = await client.auth.getSession();
+    const sessionResult = await client.auth.getUser();
     
-    if (error || !data.session?.user) {
+    if (sessionResult.error || !sessionResult.data.user) {
       return false;
     }
 
     // Check MFA status from user metadata
-    const user = data.session.user;
+    const user = sessionResult.data.user;
     const mfaEnabled = user.app_metadata?.mfa_enabled;
     const mfaVerified = user.app_metadata?.mfa_verified;
 
