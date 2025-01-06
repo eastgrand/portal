@@ -1,6 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { createMiddlewareClient } from '@kit/supabase/middleware-client';
+import { checkRequiresMultiFactorAuthentication } from '@kit/supabase/check-requires-mfa';
+import pathsConfig from './config/paths.config';
 
 export const config = {
   matcher: [
@@ -8,31 +11,37 @@ export const config = {
   ],
 };
 
+const getUser = (request: NextRequest, response: NextResponse) => {
+  const supabase = createMiddlewareClient(request, response);
+  return supabase.auth.getUser();
+};
+
 export async function middleware(request: NextRequest) {
   try {
-    const res = NextResponse.next();
-    
-    // Create Supabase client
-    const supabase = createMiddlewareClient({ req: request, res });
-    
-    // Refresh session if it exists
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // If no session, allow the request to continue
-    if (!session) {
-      return res;
+    const response = NextResponse.next();
+    const supabase = createMiddlewareClient(request, response);
+
+    const {
+      data: { user },
+    } = await getUser(request, response);
+
+    // If no user, allow the request to continue
+    if (!user) {
+      return response;
     }
 
-    // Check if MFA is required
-    const { data: factors } = await supabase.auth.mfa.listFactors();
-    const requiresMFA = (factors?.all?.length ?? 0) > 0;
+    const requiresMultiFactorAuthentication = 
+      await checkRequiresMultiFactorAuthentication(supabase);
 
     // If MFA is required and not on the verify page, redirect
-    if (requiresMFA && !request.nextUrl.pathname.includes('/auth/verify')) {
-      return NextResponse.redirect(new URL('/auth/verify', request.nextUrl.origin));
+    if (requiresMultiFactorAuthentication && 
+        !request.nextUrl.pathname.includes('/auth/verify')) {
+      return NextResponse.redirect(
+        new URL(pathsConfig.auth.verifyMfa, request.nextUrl.origin)
+      );
     }
 
-    return res;
+    return response;
   } catch (error) {
     console.error('Middleware error:', error);
     return NextResponse.next();
