@@ -6,14 +6,11 @@ export const config = {
     // Match all paths except static files and api routes
     '/((?!_next/static|_next/image|favicon.ico|api).*)',
   ],
-  regions: ['iad1'],
-  unstable_allowDynamic: [
-    '**/node_modules/**',
-  ]
+  regions: ['iad1']
 }
 
 export function middleware(request: NextRequest) {
-  const userAgent = request.headers.get('user-agent');
+  // Only check auth cookie, skip user agent completely
   const authCookie = request.cookies.get('sb-access-token');
   
   return NextResponse.next();
