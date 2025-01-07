@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -32,14 +33,27 @@ interface CreateProjectDialogFormProps {
   onCancel?: () => void;
 }
 
-type ServerError = {
+type CreateProjectError = {
   message: string;
-};
+} & Error;
 
 export function CreateProjectDialog(props: React.PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  const handleError = (error: unknown) => {
+    let errorMessage = 'Failed to create project';
+
+    if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = String((error as CreateProjectError).message);
+    }
+
+    toast({
+      description: errorMessage,
+      variant: "destructive",
+    });
+  };
 
   const handleCreateSuccess = () => {
     setIsOpen(false);
@@ -86,18 +100,12 @@ function CreateProjectDialogForm(props: CreateProjectDialogFormProps) {
   const [pending, startTransition] = useTransition();
 
   const handleError = (error: unknown) => {
-    let errorMessage = "Failed to create project";
-    
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (
-      typeof error === 'object' && 
-      error !== null && 
-      'message' in error
-    ) {
-      errorMessage = (error as ServerError).message;
+    let errorMessage = 'Failed to create project';
+
+    if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = String((error as CreateProjectError).message);
     }
-    
+
     toast({
       description: errorMessage,
       variant: "destructive",

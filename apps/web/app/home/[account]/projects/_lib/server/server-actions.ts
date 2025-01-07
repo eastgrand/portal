@@ -1,46 +1,134 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use server';
+
 import { revalidatePath } from 'next/cache';
-import { enhanceAction } from '@kit/next/actions';
-import { getLogger } from '@kit/shared/logger';
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
-import { CreateProjectSchema } from './schema/create-project-schema';
+import { getLogger } from '@kit/shared/logger';
+import { enhanceAction } from '@kit/next/actions';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
+
+// Types
+interface Project {
+  id: string;
+  name: string;
+  account_id: string;
+  created_at: string;
+}
+
+const CreateProjectSchema = z.object({
+  name: z.string().min(3).max(50),
+  accountId: z.string()
+});
+
+type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
+
+// Server action
 export const createProjectAction = enhanceAction(
- async (data) => {
-   const client = getSupabaseServerClient();
-   const logger = await getLogger();
-   logger.info(
-     {
-       accountId: data.accountId,
-       name: data.name,
-     },
-     'Creating project...',
-   );
-   const response = await client.from('projects').insert({
-     account_id: data.accountId,
-     name: data.name,
-   });
-   if (response.error) {
-     logger.error(
-       {
-         accountId: data.accountId,
-         name: data.name,
-         error: response.error,
-       },
-       'Failed to create project',
-     );
-     throw response.error;
-   }
-   logger.info(
-     {
-       accountId: data.accountId,
-       name: data.name,
-     },
-     'Project created',
-   );
-   revalidatePath('/home/[account]/projects', 'layout');
- },
- {
-   schema: CreateProjectSchema,
-   auth: true,
- },
+  async (data: CreateProjectInput) => {
+    const client = getSupabaseServerClient();
+    const logger = await getLogger();
+    
+    try {
+      logger.info(
+        {
+          accountId: data.accountId,
+          name: data.name,
+        },
+        'Creating project...'
+      );
+      
+      const { data: projectData, error: insertError } = await client
+        .from('projects')
+        .insert({
+          account_id: data.accountId,
+          name: data.name,
+        })
+        .select()
+        .single();
+      
+      if (insertError) {
+        logger.error(
+          {
+            accountId: data.accountId,
+            name: data.name,
+            error: insertError,
+          },
+          'Failed to create project'
+        );
+        throw new Error(insertError.message);
+      }
+
+      if (!projectData) {
+        throw new Error('Failed to create project: No data returned');
+      }
+      
+      // Add the creator as a project member
+      const { data: { user }, error: userError } = await client.auth.getUser();
+      
+      if (userError) {
+        logger.error({ error: userError }, 'Failed to get user');
+        throw new Error('Failed to get user information');
+      }
+
+      if (!user?.id) {
+        throw new Error('User not found');
+      }
+
+      const { error: memberError } = await client
+        .from('project_members')
+        .insert({
+          project_id: projectData.id,
+          user_id: user.id,
+          role: 'owner'
+        });
+
+      if (memberError) {
+        logger.error(
+          {
+            projectId: projectData.id,
+            userId: user.id,
+            error: memberError,
+          },
+          'Failed to add project member'
+        );
+        throw new Error('Failed to add project member');
+      }
+      
+      logger.info(
+        {
+          accountId: data.accountId,
+          name: data.name,
+          projectId: projectData.id,
+        },
+        'Project created successfully'
+      );
+      
+      // Revalidate various paths to ensure UI is updated
+      revalidatePath('/home/projects');
+      revalidatePath('/home/[account]/projects');
+      revalidatePath('/home');
+      
+      return projectData as Project;
+    } catch (error) {
+      logger.error(
+        {
+          accountId: data.accountId,
+          name: data.name,
+          error,
+        },
+        'Failed to create project'
+      );
+      
+      if (error instanceof Error) {
+        throw error;
+      }
+      
+      throw new Error('Failed to create project');
+    }
+  },
+  {
+    schema: CreateProjectSchema,
+    auth: true,
+  }
 );

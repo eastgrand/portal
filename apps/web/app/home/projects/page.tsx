@@ -32,6 +32,7 @@ export const generateMetadata = async () => {
   };
 };
 
+// page.tsx
 async function PersonalProjectsPage() {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
@@ -42,61 +43,73 @@ async function PersonalProjectsPage() {
   ]);
   
   console.log('User ID:', user?.id);
-  console.log('User Role from getUserRole:', userRole);
-  console.log('User Role type:', typeof userRole);
+  console.log('User Role:', userRole);
   
   const isSuperAdmin = userRole === 'super-admin';
-  console.log('Is Super Admin?', isSuperAdmin);
   
-  const projects = await (isSuperAdmin 
-    ? service.getAllProjects()
-    : service.getMemberProjects(user?.id)
-  );
+  try {
+    const projects = await (isSuperAdmin 
+      ? service.getAllProjects()
+      : service.getMemberProjects(user?.id)
+    );
 
-  return (
-    <>
-      <HomeLayoutPageHeader
-        title={<Trans i18nKey="common:routes.projects" />}
-        description={<AppBreadcrumbs />}
-      >
-        {isSuperAdmin && (
-          <Link href="/home/projects/new">
-            <CreateProjectDialog>
-              <Button>New Project</Button>
-            </CreateProjectDialog>
-          </Link>
-        )}
-      </HomeLayoutPageHeader>
-      <PageBody>
-        <If condition={projects.length === 0}>
-          <EmptyState>
-            <EmptyStateHeading>No projects found</EmptyStateHeading>
-            <EmptyStateText>
-              {isSuperAdmin 
-                ? "You still have not created any projects. Create your first project now!"
-                : "You don't have access to any projects yet."}
-            </EmptyStateText>
-            {isSuperAdmin && (
+    console.log('Fetched projects:', projects); // Debug log
+
+    return (
+      <>
+        <HomeLayoutPageHeader
+          title={<Trans i18nKey="common:routes.projects" />}
+          description={<AppBreadcrumbs />}
+        >
+          {isSuperAdmin && (
+            <Link href="/home/projects/new">
               <CreateProjectDialog>
-                <EmptyStateButton>Create Project</EmptyStateButton>
+                <Button>New Project</Button>
               </CreateProjectDialog>
-            )}
-          </EmptyState>
-        </If>
-        <div className={'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'}>
-          {projects.map((project) => (
-            <CardButton key={project.id} asChild>
-              <Link href={`/home/projects/${project.id}`}>
-                <CardButtonHeader>
-                  <CardButtonTitle>{project.name}</CardButtonTitle>
-                </CardButtonHeader>
-              </Link>
-            </CardButton>
-          ))}
-        </div>
-      </PageBody>
-    </>
-  );
+            </Link>
+          )}
+        </HomeLayoutPageHeader>
+        <PageBody>
+          <If condition={!projects || projects.length === 0}>
+            <EmptyState>
+              <EmptyStateHeading>No projects found</EmptyStateHeading>
+              <EmptyStateText>
+                {isSuperAdmin 
+                  ? "You still have not created any projects. Create your first project now!"
+                  : "You don't have access to any projects yet."}
+              </EmptyStateText>
+              {isSuperAdmin && (
+                <CreateProjectDialog>
+                  <EmptyStateButton>Create Project</EmptyStateButton>
+                </CreateProjectDialog>
+              )}
+            </EmptyState>
+          </If>
+          <div className={'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'}>
+            {projects?.map((project) => (
+              <CardButton key={project.id} asChild>
+                <Link href={`/home/projects/${project.id}`}>
+                  <CardButtonHeader>
+                    <CardButtonTitle>{project.name}</CardButtonTitle>
+                  </CardButtonHeader>
+                </Link>
+              </CardButton>
+            ))}
+          </div>
+        </PageBody>
+      </>
+    );
+  } catch (error) {
+    console.error('Error rendering projects page:', error);
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Error loading projects</EmptyStateHeading>
+        <EmptyStateText>
+          There was an error loading your projects. Please try refreshing the page.
+        </EmptyStateText>
+      </EmptyState>
+    );
+  }
 }
 
 export default withI18n(PersonalProjectsPage);
