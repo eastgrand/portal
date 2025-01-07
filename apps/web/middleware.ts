@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Temporarily disable middleware by matching nothing
 export const config = {
-  matcher: []
+  matcher: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  runtime: 'nodejs' // Force Node.js runtime instead of Edge
 }
 
 export function middleware(request: NextRequest) {
+  // Simple pass-through
   return NextResponse.next();
 }
