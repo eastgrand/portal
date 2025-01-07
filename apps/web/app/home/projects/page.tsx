@@ -32,8 +32,13 @@ export const generateMetadata = async () => {
   };
 };
 
-// page.tsx
-async function PersonalProjectsPage() {
+interface PageProps {
+  params: {
+    account?: string; // Account slug from the URL
+  };
+}
+
+async function PersonalProjectsPage({ params }: PageProps) {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
   
@@ -42,13 +47,26 @@ async function PersonalProjectsPage() {
     getUserRole(client)
   ]);
   
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
   const isSuperAdmin = userRole === 'super-admin';
+  const accountSlug = params.account;
   
   try {
-    const projects = await (isSuperAdmin 
-      ? service.getAllProjects()
-      : service.getMemberProjects(user?.id)
-    );
+    let projects = [];
+    
+    if (accountSlug) {
+      // If we have an account slug, use the account-specific logic
+      projects = await service.getProjects(accountSlug, userRole);
+    } else if (isSuperAdmin) {
+      // Super admin without account context sees all projects
+      projects = await service.getAllProjects();
+    } else {
+      // Regular user without account context sees their member projects
+      projects = await service.getMemberProjects(user.id);
+    }
 
     return (
       <>
@@ -56,9 +74,11 @@ async function PersonalProjectsPage() {
           title={<Trans i18nKey="common:routes.projects" />}
           description={<AppBreadcrumbs />}
         >
-          {isSuperAdmin && (
+          {(isSuperAdmin || accountSlug?.startsWith('team_')) && (
             <CreateProjectDialog>
-              <Button>New Project</Button>
+              <Button type="button">
+                New Project
+              </Button>
             </CreateProjectDialog>
           )}
         </HomeLayoutPageHeader>
@@ -68,12 +88,16 @@ async function PersonalProjectsPage() {
               <EmptyStateHeading>No projects found</EmptyStateHeading>
               <EmptyStateText>
                 {isSuperAdmin 
-                  ? "You still have not created any projects. Create your first project now!"
+                  ? "You haven't created any projects yet. Create your first project now!"
+                  : accountSlug?.startsWith('team_')
+                  ? "This team doesn't have any projects yet. Create your first project now!"
                   : "You don't have access to any projects yet."}
               </EmptyStateText>
-              {isSuperAdmin && (
+              {(isSuperAdmin || accountSlug?.startsWith('team_')) && (
                 <CreateProjectDialog>
-                  <EmptyStateButton>Create Project</EmptyStateButton>
+                  <EmptyStateButton type="button">
+                    Create Project
+                  </EmptyStateButton>
                 </CreateProjectDialog>
               )}
             </EmptyState>
