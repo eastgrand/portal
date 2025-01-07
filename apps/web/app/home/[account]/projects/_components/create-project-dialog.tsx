@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/require-await */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -18,42 +19,24 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from '@kit/ui/form';
 import { Input } from '@kit/ui/input';
 import { useToast } from '@kit/ui/use-toast';
 import { CreateProjectSchema } from '../_lib/server/schema/create-project-schema';
-import { createProjectAction } from '../_lib/server/server-actions';
 
 interface CreateProjectDialogFormProps {
   onCreateProject?: () => void;
   onCancel?: () => void;
 }
 
-type CreateProjectError = {
-  message: string;
-} & Error;
-
 export function CreateProjectDialog(props: React.PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-
-  const handleError = (error: unknown) => {
-    let errorMessage = 'Failed to create project';
-
-    if (error && typeof error === 'object' && 'message' in error) {
-      errorMessage = String((error as CreateProjectError).message);
-    }
-
-    toast({
-      description: errorMessage,
-      variant: "destructive",
-    });
-  };
 
   const handleCreateSuccess = () => {
     setIsOpen(false);
@@ -88,72 +71,83 @@ function CreateProjectDialogForm(props: CreateProjectDialogFormProps) {
     account: { id: accountId },
   } = useTeamAccountWorkspace();
   const { toast } = useToast();
-  
+  const [pending, startTransition] = useTransition();
+
   const form = useForm({
     resolver: zodResolver(CreateProjectSchema),
     defaultValues: {
       name: '',
-      accountId,
+      accountId: accountId, // Make sure this matches the schema
     },
   });
-  
-  const [pending, startTransition] = useTransition();
 
-  const handleError = (error: unknown) => {
-    let errorMessage = 'Failed to create project';
+  async function onSubmit(data: { name: string; accountId: string }) {
+    startTransition(async () => {
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
 
-    if (error && typeof error === 'object' && 'message' in error) {
-      errorMessage = String((error as CreateProjectError).message);
-    }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message ?? 'Failed to create project');
+        }
 
-    toast({
-      description: errorMessage,
-      variant: "destructive",
+        props.onCreateProject?.();
+      } catch (error) {
+        console.error('Error creating project:', error);
+        toast({
+          description: error instanceof Error 
+            ? error.message 
+            : 'Failed to create project',
+          variant: "destructive",
+        });
+      }
     });
-  };
-  
+  }
+
   return (
     <Form {...form}>
       <form
-        className={'flex flex-col space-y-4'}
-        onSubmit={form.handleSubmit((data) => {
-          startTransition(async () => {
-            try {
-              await createProjectAction(data);
-              props.onCreateProject?.();
-            } catch (error) {
-              handleError(error);
-            }
-          });
-        })}
+        className="flex flex-col space-y-4"
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <FormField
-          name={'name'}
+          control={form.control}
+          name="name"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Project Name</FormLabel>
               <FormControl>
                 <Input
-                  data-test={'project-name-input'}
-                  required
-                  min={3}
-                  max={50}
-                  type={'text'}
-                  placeholder={'Enter project name'}
+                  data-test="project-name-input"
+                  placeholder="Enter project name"
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
-                Enter a name for your project (Ex. Accounting)
-              </FormDescription>
+              <FormMessage />
             </FormItem>
           )}
         />
-        <div className={'flex justify-end space-x-2'}>
-          <Button variant={'outline'} type={'button'} onClick={props.onCancel}>
+        
+        <div className="flex justify-end space-x-2">
+          <Button 
+            variant="outline" 
+            type="button" 
+            onClick={props.onCancel}
+          >
             Cancel
           </Button>
-          <Button disabled={pending}>Create Project</Button>
+          <Button 
+            type="submit" 
+            disabled={pending}
+          >
+            Create Project
+          </Button>
         </div>
       </form>
     </Form>
