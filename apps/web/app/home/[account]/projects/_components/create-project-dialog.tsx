@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/require-await */
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -27,6 +27,7 @@ import {
 import { Input } from '@kit/ui/input';
 import { useToast } from '@kit/ui/use-toast';
 import { CreateProjectSchema } from '../_lib/server/schema/create-project-schema';
+import { createProjectAction } from '../_lib/server/server-actions';
 
 interface CreateProjectDialogFormProps {
   onCreateProject?: () => void;
@@ -77,33 +78,21 @@ function CreateProjectDialogForm(props: CreateProjectDialogFormProps) {
     resolver: zodResolver(CreateProjectSchema),
     defaultValues: {
       name: '',
-      accountId: accountId, // Make sure this matches the schema
+      accountId,
     },
   });
 
   async function onSubmit(data: { name: string; accountId: string }) {
     startTransition(async () => {
       try {
-        const response = await fetch('/api/projects', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message ?? 'Failed to create project');
-        }
-
+        console.log('Submitting project data:', data); // Debug log
+        const result = await createProjectAction(data);
+        console.log('Project creation result:', result); // Debug log
         props.onCreateProject?.();
       } catch (error) {
         console.error('Error creating project:', error);
         toast({
-          description: error instanceof Error 
-            ? error.message 
-            : 'Failed to create project',
+          description: error instanceof Error ? error.message : 'Failed to create project',
           variant: "destructive",
         });
       }
@@ -146,7 +135,7 @@ function CreateProjectDialogForm(props: CreateProjectDialogFormProps) {
             type="submit" 
             disabled={pending}
           >
-            Create Project
+            {pending ? 'Creating...' : 'Create Project'}
           </Button>
         </div>
       </form>
