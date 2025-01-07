@@ -14,7 +14,9 @@ export const config = {
   ]
 }
 
-export function middleware(request: NextRequest) {
-  // Simple pass-through
+// Edge-compatible middleware
+export async function middleware(request: NextRequest) {
+  // We don't need to parse user agent in Edge runtime
+  // Just pass through the request
   return NextResponse.next();
 }
