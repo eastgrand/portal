@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
-type UserRole = 'super_admin' | 'admin' | 'member' | null;
+// Updated type to use hyphen instead of underscore to match raw_app_metadata
+type UserRole = 'super-admin' | 'admin' | 'member' | null;  // Changed from super_admin to super-admin
 
 export async function getUserRole(client: SupabaseClient): Promise<UserRole> {
   try {
@@ -8,20 +9,18 @@ export async function getUserRole(client: SupabaseClient): Promise<UserRole> {
     
     if (!user) return null;
 
-    const { data: userRole, error } = await client
-      .from('user_roles')  // Using the public view instead of auth.users
-      .select('role')
+    const { data: userData, error } = await client
+      .from('auth.users')
+      .select('raw_app_metadata')
       .eq('id', user.id)
       .single();
 
-    if (error) {
-      console.error('Error fetching user role:', error);
-      return null;
-    }
+    if (error) throw error;
     
-    return userRole?.role as UserRole;
+    // Type assertion to ensure TypeScript knows this is a valid UserRole
+    return userData?.raw_app_metadata?.role as UserRole;
   } catch (error) {
-    console.error('Error in getUserRole:', error);
+    console.error('Error fetching user role:', error);
     return null;
   }
 }
