@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+'use client';
+
 import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogTrigger } from '@kit/ui/dialog';
