@@ -1,20 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
 import { getLogger } from '@kit/shared/logger';
 import { enhanceAction } from '@kit/next/actions';
-import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-
-// Types
-interface Project {
-  id: string;
-  name: string;
-  account_id: string;
-  created_at: string;
-}
 
 const CreateProjectSchema = z.object({
   name: z.string().min(3).max(50),
@@ -23,7 +13,6 @@ const CreateProjectSchema = z.object({
 
 type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
 
-// Server action
 export const createProjectAction = enhanceAction(
   async (data: CreateProjectInput) => {
     const client = getSupabaseServerClient();
@@ -104,12 +93,12 @@ export const createProjectAction = enhanceAction(
         'Project created successfully'
       );
       
-      // Revalidate various paths to ensure UI is updated
-      revalidatePath('/home/projects');
-      revalidatePath('/home/[account]/projects');
-      revalidatePath('/home');
+      // Revalidate paths - remove /home prefix
+      revalidatePath('/projects');
+      revalidatePath(`/[account]/projects`);
+      revalidatePath('/');
       
-      return projectData as Project;
+      return projectData;
     } catch (error) {
       logger.error(
         {

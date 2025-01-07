@@ -1,139 +1,74 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-'use client';
-
-import { useState, useTransition } from 'react';
+import { useParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { useTeamAccountWorkspace } from '@kit/team-accounts/hooks/use-team-account-workspace';
-import { Button } from '@kit/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@kit/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@kit/ui/form';
-import { Input } from '@kit/ui/input';
-import { useToast } from '@kit/ui/use-toast';
+import { Dialog, DialogContent, DialogTrigger } from '@kit/ui/dialog';
+import { PropsWithChildren, useState } from 'react';
 import { createProjectAction } from '../_lib/server/server-actions';
 
-interface CreateProjectDialogFormProps {
-  onCreateProject?: () => void;
-  onCancel?: () => void;
-}
+type ProjectRouteParams = {
+  account: string;
+};
 
-export function CreateProjectDialog(props: React.PropsWithChildren) {
+export function CreateProjectDialog({ children }: PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
+  const params = useParams<ProjectRouteParams>();
   const router = useRouter();
-  const { toast } = useToast();
-  
-  const handleCreateSuccess = () => {
-    setIsOpen(false);
-    toast({
-      description: "Project created successfully",
-      variant: "success",
-    });
-    router.refresh();
-  };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{props.children}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
-          <DialogDescription>
-            Create a new project for your team.
-          </DialogDescription>
-        </DialogHeader>
-        <CreateProjectDialogForm
-          onCancel={() => setIsOpen(false)}
-          onCreateProject={handleCreateSuccess}
-        />
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function CreateProjectDialogForm(props: CreateProjectDialogFormProps) {
-  const {
-    account: { id: accountId },
-  } = useTeamAccountWorkspace();
-  const { toast } = useToast();
-  const [pending, startTransition] = useTransition();
-  
-  const form = useForm({
-    defaultValues: {
-      name: '',
-      accountId,
-    },
-  });
-
-  const onSubmit = async (data: { name: string; accountId: string }) => {
+  const handleCreateProject = async (formData: FormData) => {
     try {
-      console.log('Creating project with data:', data);
-      await createProjectAction(data);
-      props.onCreateProject?.();
+      const name = formData.get('name') as string;
+      const accountId = params.account;
+
+      if (!accountId || typeof accountId !== 'string') {
+        throw new Error('Valid account ID is required');
+      }
+
+      const project = await createProjectAction({
+        name,
+        accountId
+      });
+
+      // Close dialog and redirect to the new project
+      setIsOpen(false);
+      router.push(`/projects/${project.id}`);
     } catch (error) {
       console.error('Error creating project:', error);
-      toast({
-        description: error instanceof Error ? error.message : 'Failed to create project',
-        variant: "destructive",
-      });
+      // Handle error (show toast, etc.)
     }
   };
 
   return (
-    <Form {...form}>
-      <form
-        className="flex flex-col space-y-4"
-        onSubmit={form.handleSubmit(onSubmit)}
-      >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project Name</FormLabel>
-              <FormControl>
-                <Input
-                  data-test="project-name-input"
-                  placeholder="Enter project name"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <div className="flex justify-end space-x-2">
-          <Button 
-            variant="outline" 
-            type="button" 
-            onClick={props.onCancel}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={pending}
-          >
-            {pending ? 'Creating...' : 'Create Project'}
-          </Button>
-        </div>
-      </form>
-    </Form>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent>
+        <form action={handleCreateProject}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Project Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                id="name"
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="Enter project name"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Create Project
+              </button>
+            </div>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
