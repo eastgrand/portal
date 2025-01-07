@@ -42,9 +42,6 @@ async function PersonalProjectsPage() {
     getUserRole(client)
   ]);
   
-  console.log('User ID:', user?.id);
-  console.log('User Role:', userRole);
-  
   const isSuperAdmin = userRole === 'super-admin';
   
   try {
@@ -53,8 +50,6 @@ async function PersonalProjectsPage() {
       : service.getMemberProjects(user?.id)
     );
 
-    console.log('Fetched projects:', projects); // Debug log
-
     return (
       <>
         <HomeLayoutPageHeader
@@ -62,11 +57,9 @@ async function PersonalProjectsPage() {
           description={<AppBreadcrumbs />}
         >
           {isSuperAdmin && (
-            <Link href="/home/projects/new">
-              <CreateProjectDialog>
-                <Button>New Project</Button>
-              </CreateProjectDialog>
-            </Link>
+            <CreateProjectDialog>
+              <Button>New Project</Button>
+            </CreateProjectDialog>
           )}
         </HomeLayoutPageHeader>
         <PageBody>
@@ -85,10 +78,10 @@ async function PersonalProjectsPage() {
               )}
             </EmptyState>
           </If>
-          <div className={'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {projects?.map((project) => (
               <CardButton key={project.id} asChild>
-                <Link href={`/home/projects/${project.id}`}>
+                <Link href={`/projects/${project.id}`}>
                   <CardButtonHeader>
                     <CardButtonTitle>{project.name}</CardButtonTitle>
                   </CardButtonHeader>

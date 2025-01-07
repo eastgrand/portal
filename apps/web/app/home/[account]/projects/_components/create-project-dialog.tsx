@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/require-await */
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -26,7 +24,6 @@ import {
 } from '@kit/ui/form';
 import { Input } from '@kit/ui/input';
 import { useToast } from '@kit/ui/use-toast';
-import { CreateProjectSchema } from '../_lib/server/schema/create-project-schema';
 import { createProjectAction } from '../_lib/server/server-actions';
 
 interface CreateProjectDialogFormProps {
@@ -38,7 +35,7 @@ export function CreateProjectDialog(props: React.PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-
+  
   const handleCreateSuccess = () => {
     setIsOpen(false);
     toast({
@@ -73,31 +70,27 @@ function CreateProjectDialogForm(props: CreateProjectDialogFormProps) {
   } = useTeamAccountWorkspace();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
-
+  
   const form = useForm({
-    resolver: zodResolver(CreateProjectSchema),
     defaultValues: {
       name: '',
       accountId,
     },
   });
 
-  async function onSubmit(data: { name: string; accountId: string }) {
-    startTransition(async () => {
-      try {
-        console.log('Submitting project data:', data); // Debug log
-        const result = await createProjectAction(data);
-        console.log('Project creation result:', result); // Debug log
-        props.onCreateProject?.();
-      } catch (error) {
-        console.error('Error creating project:', error);
-        toast({
-          description: error instanceof Error ? error.message : 'Failed to create project',
-          variant: "destructive",
-        });
-      }
-    });
-  }
+  const onSubmit = async (data: { name: string; accountId: string }) => {
+    try {
+      console.log('Creating project with data:', data);
+      await createProjectAction(data);
+      props.onCreateProject?.();
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({
+        description: error instanceof Error ? error.message : 'Failed to create project',
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Form {...form}>
