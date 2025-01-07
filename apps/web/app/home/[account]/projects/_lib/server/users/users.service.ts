@@ -9,7 +9,7 @@ export async function getUserRole(client: SupabaseClient): Promise<UserRole> {
     if (!user) return null;
 
     const { data: userRole, error } = await client
-      .from('users')
+      .from('auth.users')  // Changed to auth schema
       .select('role')
       .eq('id', user.id)
       .single();
@@ -21,4 +21,4 @@ export async function getUserRole(client: SupabaseClient): Promise<UserRole> {
     console.error('Error fetching user role:', error);
     return null;
   }
-} 
+}
