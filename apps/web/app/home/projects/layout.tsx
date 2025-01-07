@@ -1,7 +1,5 @@
 import { use } from 'react';
-
 import { cookies } from 'next/headers';
-
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
 import {
   Page,
@@ -10,12 +8,10 @@ import {
   PageNavigation,
 } from '@kit/ui/page';
 import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
-
+import { Toaster } from '@kit/ui/toaster';
 import { AppLogo } from '~/components/app-logo';
 import { personalAccountNavigationConfig } from '~/config/personal-account-navigation.config';
 import { withI18n } from '~/lib/i18n/with-i18n';
-
-// home imports
 import { HomeMenuNavigation } from '../(user)/_components/home-menu-navigation';
 import { HomeMobileNavigation } from '../(user)/_components/home-mobile-navigation';
 import { HomeSidebar } from '../(user)/_components/home-sidebar';
@@ -50,6 +46,7 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
           </PageMobileNavigation>
 
           {children}
+          <Toaster />
         </Page>
       </SidebarProvider>
     </UserWorkspaceContextProvider>
@@ -71,6 +68,7 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
         </PageMobileNavigation>
 
         {children}
+        <Toaster />
       </Page>
     </UserWorkspaceContextProvider>
   );
@@ -84,7 +82,6 @@ function MobileNavigation({
   return (
     <>
       <AppLogo />
-
       <HomeMobileNavigation workspace={workspace} />
     </>
   );
