@@ -11,12 +11,11 @@ export const config = {
      * - favicon.ico (favicon file)
      */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ]
+  ],
+  runtime: 'edge'
 }
 
-// Edge-compatible middleware
-export async function middleware(request: NextRequest) {
-  // We don't need to parse user agent in Edge runtime
-  // Just pass through the request
+export function middleware(request: NextRequest) {
+  // Simple pass-through without any user agent parsing
   return NextResponse.next();
 }
