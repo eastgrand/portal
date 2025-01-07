@@ -9,13 +9,12 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - favicon.png (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
-  runtime: 'experimental-edge'
+    '/((?!api|_next/static|_next/image|favicon.ico|favicon.png).*)',
+  ]
 }
 
 export function middleware(request: NextRequest) {
-  // Simple pass-through without any user agent parsing
   return NextResponse.next();
 }
