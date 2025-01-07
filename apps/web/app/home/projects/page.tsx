@@ -14,12 +14,25 @@ import {
   EmptyStateText,
 } from '@kit/ui/empty-state';
 import { If } from '@kit/ui/if';
-import { PageBody, PageHeader } from '@kit/ui/page';
+import { PageBody } from '@kit/ui/page';
+import { Trans } from '@kit/ui/trans';
+import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
+import { withI18n } from '~/lib/i18n/with-i18n';
+import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
 import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
 
-export default async function PersonalProjectsPage() {
+export const generateMetadata = async () => {
+  const i18n = await createI18nServerInstance();
+  const title = i18n.t('account:projectsPage');
+
+  return {
+    title,
+  };
+};
+
+async function PersonalProjectsPage() {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
   
@@ -36,7 +49,10 @@ export default async function PersonalProjectsPage() {
 
   return (
     <>
-      <PageHeader title="Projects" description={<AppBreadcrumbs />}>
+      <HomeLayoutPageHeader
+        title={<Trans i18nKey="common:routes.projects" />}
+        description={<AppBreadcrumbs />}
+      >
         {isSuperAdmin && (
           <Link href="/home/projects/new">
             <CreateProjectDialog>
@@ -44,7 +60,7 @@ export default async function PersonalProjectsPage() {
             </CreateProjectDialog>
           </Link>
         )}
-      </PageHeader>
+      </HomeLayoutPageHeader>
       <PageBody>
         <If condition={projects.length === 0}>
           <EmptyState>
@@ -75,4 +91,6 @@ export default async function PersonalProjectsPage() {
       </PageBody>
     </>
   );
-} 
+}
+
+export default withI18n(PersonalProjectsPage);

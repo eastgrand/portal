@@ -30,7 +30,7 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
  const client = getSupabaseServerComponentClient();
  const service = createProjectsService(client);
  const userRole = use(getUserRole(client));
- const projects = use(service.getProjects(params.account, userRole || undefined));
+ const projects = use(service.getProjects(params.account, userRole ?? undefined));
  const canCreateProjects = userRole === 'super_admin';
 
  return (
