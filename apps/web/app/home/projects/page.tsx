@@ -41,7 +41,13 @@ async function PersonalProjectsPage() {
     getUserRole(client)
   ]);
   
+  console.log('User ID:', user?.id);
+  console.log('User Role from getUserRole:', userRole);
+  console.log('User Role type:', typeof userRole);
+  
   const isSuperAdmin = userRole === 'super-admin';
+  console.log('Is Super Admin?', isSuperAdmin);
+  
   const projects = await (isSuperAdmin 
     ? service.getAllProjects()
     : service.getMemberProjects(user?.id)
