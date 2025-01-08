@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Suspense } from 'react';
 import Link from 'next/link';
@@ -51,22 +52,58 @@ async function loadProjects() {
   return { user, projects: projects || [], userRole };
 }
 
+function ProjectContent({ projects, isSuperAdmin }: { projects: any[], isSuperAdmin: boolean }) {
+  if (!projects.length) {
+    return (
+      <EmptyState>
+        <EmptyStateHeading>No projects found</EmptyStateHeading>
+        <EmptyStateText>
+          {isSuperAdmin 
+            ? "You haven't created any projects yet. Create your first project now!"
+            : "You don't have access to any projects yet."}
+        </EmptyStateText>
+        {isSuperAdmin && (
+          <CreateProjectDialog>
+            <EmptyStateButton>Create Project</EmptyStateButton>
+          </CreateProjectDialog>
+        )}
+      </EmptyState>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {projects.map((project) => (
+        <CardButton key={project.id} asChild>
+          <Link href={`/projects/${project.id}`}>
+            <CardButtonHeader>
+              <CardButtonTitle>{project.name}</CardButtonTitle>
+            </CardButtonHeader>
+          </Link>
+        </CardButton>
+      ))}
+    </div>
+  );
+}
+
 export default withI18n(async function ProjectsPage() {
   const { user, projects, userRole } = await loadProjects();
 
   if (!user) {
     return (
-      <EmptyState>
-        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
-        <EmptyStateText>Please sign in to view projects</EmptyStateText>
-      </EmptyState>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+        <EmptyState>
+          <EmptyStateHeading>Not authenticated</EmptyStateHeading>
+          <EmptyStateText>Please sign in to view projects</EmptyStateText>
+        </EmptyState>
+      </div>
     );
   }
 
   const isSuperAdmin = userRole === 'super-admin';
 
   return (
-    <>
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
       <HomeLayoutPageHeader
         title={<Trans i18nKey="common:routes.projects" />}
         description={<AppBreadcrumbs />}
@@ -77,37 +114,12 @@ export default withI18n(async function ProjectsPage() {
           </CreateProjectDialog>
         )}
       </HomeLayoutPageHeader>
+
       <PageBody>
-        <div className="flex flex-col space-y-4">
-          {!projects.length ? (
-            <EmptyState>
-              <EmptyStateHeading>No projects found</EmptyStateHeading>
-              <EmptyStateText>
-                {isSuperAdmin 
-                  ? "You haven't created any projects yet. Create your first project now!"
-                  : "You don't have access to any projects yet."}
-              </EmptyStateText>
-              {isSuperAdmin && (
-                <CreateProjectDialog>
-                  <EmptyStateButton>Create Project</EmptyStateButton>
-                </CreateProjectDialog>
-              )}
-            </EmptyState>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {projects.map((project) => (
-                <CardButton key={project.id} asChild>
-                  <Link href={`/projects/${project.id}`}>
-                    <CardButtonHeader>
-                      <CardButtonTitle>{project.name}</CardButtonTitle>
-                    </CardButtonHeader>
-                  </Link>
-                </CardButton>
-              ))}
-            </div>
-          )}
+        <div className="flex flex-1 items-center justify-center">
+          <ProjectContent projects={projects} isSuperAdmin={isSuperAdmin} />
         </div>
       </PageBody>
-    </>
+    </div>
   );
 });
