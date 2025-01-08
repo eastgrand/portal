@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
-import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
-import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+import { createProjectsService } from '../../../home/[account]/projects/_lib/server/projects/projects.service';
+import { getUserRole } from '../../../home/[account]/projects/_lib/server/users/users.service';
 
 export async function GET() {
   try {
