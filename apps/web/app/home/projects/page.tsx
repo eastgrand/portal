@@ -32,13 +32,7 @@ export const generateMetadata = async () => {
   };
 };
 
-interface PageProps {
-  params: {
-    account: string;
-  };
-}
-
-async function ProjectsPage({ params }: PageProps) {
+async function PersonalProjectsPage() {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
   
@@ -54,15 +48,18 @@ async function ProjectsPage({ params }: PageProps) {
   const isSuperAdmin = userRole === 'super-admin';
   
   try {
-    const projects = await service.getProjects(params.account, userRole);
+    const projects = await (isSuperAdmin 
+      ? service.getAllProjects()
+      : service.getMemberProjects(user?.id)
+    );
 
     return (
-      <>
+      <div className="w-full">
         <HomeLayoutPageHeader
           title={<Trans i18nKey="common:routes.projects" />}
           description={<AppBreadcrumbs />}
         >
-          {(isSuperAdmin || params.account.startsWith('team_')) && (
+          {isSuperAdmin && (
             <CreateProjectDialog>
               <Button type="button">
                 New Project
@@ -77,11 +74,9 @@ async function ProjectsPage({ params }: PageProps) {
               <EmptyStateText>
                 {isSuperAdmin 
                   ? "You haven't created any projects yet. Create your first project now!"
-                  : params.account.startsWith('team_')
-                  ? "This team doesn't have any projects yet. Create your first project now!"
                   : "You don't have access to any projects yet."}
               </EmptyStateText>
-              {(isSuperAdmin || params.account.startsWith('team_')) && (
+              {isSuperAdmin && (
                 <CreateProjectDialog>
                   <EmptyStateButton>
                     Create Project
@@ -93,7 +88,7 @@ async function ProjectsPage({ params }: PageProps) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {projects?.map((project) => (
               <CardButton key={project.id} asChild>
-                <Link href={`/home/${params.account}/projects/${project.id}`}>
+                <Link href={`/projects/${project.id}`}>
                   <CardButtonHeader>
                     <CardButtonTitle>{project.name}</CardButtonTitle>
                   </CardButtonHeader>
@@ -102,7 +97,7 @@ async function ProjectsPage({ params }: PageProps) {
             ))}
           </div>
         </PageBody>
-      </>
+      </div>
     );
   } catch (error) {
     console.error('Error rendering projects page:', error);
@@ -111,10 +106,15 @@ async function ProjectsPage({ params }: PageProps) {
         <EmptyStateHeading>Error loading projects</EmptyStateHeading>
         <EmptyStateText>
           There was an error loading your projects. Please try refreshing the page.
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-2 text-sm text-red-600">
+              Error: {error instanceof Error ? error.message : String(error)}
+            </div>
+          )}
         </EmptyStateText>
       </EmptyState>
     );
   }
 }
 
-export default withI18n(ProjectsPage);
+export default withI18n(PersonalProjectsPage);
