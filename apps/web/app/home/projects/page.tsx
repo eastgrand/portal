@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { Button } from '@kit/ui/button';
 import {
@@ -23,58 +23,53 @@ import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
 import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 
 export const generateMetadata = async () => {
   const i18n = await createI18nServerInstance();
   const title = i18n.t('account:projectsPage');
-
-  return {
-    title,
-  };
+  return { title };
 };
 
 async function ProjectsList() {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
-  
   const [{ data: { user } }, userRole] = await Promise.all([
     client.auth.getUser(),
     getUserRole(client)
   ]);
-  
+
   if (!user) {
-    return (
-      <EmptyState>
-        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
-        <EmptyStateText>Please sign in to view projects</EmptyStateText>
-      </EmptyState>
-    );
+    return null;
   }
 
   const isSuperAdmin = userRole === 'super-admin';
   const projects = await (isSuperAdmin 
     ? service.getAllProjects()
-    : service.getMemberProjects(user?.id)
+    : service.getMemberProjects(user.id)
   );
+
+  if (!projects?.length) {
+    return (
+      <EmptyState>
+        <EmptyStateHeading>No projects found</EmptyStateHeading>
+        <EmptyStateText>
+          {isSuperAdmin 
+            ? "You haven't created any projects yet. Create your first project now!"
+            : "You don't have access to any projects yet."}
+        </EmptyStateText>
+        {isSuperAdmin && (
+          <CreateProjectDialog>
+            <EmptyStateButton>Create Project</EmptyStateButton>
+          </CreateProjectDialog>
+        )}
+      </EmptyState>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <If condition={!projects || projects.length === 0}>
-        <EmptyState>
-          <EmptyStateHeading>No projects found</EmptyStateHeading>
-          <EmptyStateText>
-            {isSuperAdmin 
-              ? "You haven't created any projects yet. Create your first project now!"
-              : "You don't have access to any projects yet."}
-          </EmptyStateText>
-          {isSuperAdmin && (
-            <CreateProjectDialog>
-              <EmptyStateButton>Create Project</EmptyStateButton>
-            </CreateProjectDialog>
-          )}
-        </EmptyState>
-      </If>
-      {projects?.map((project) => (
+      {projects.map((project) => (
         <CardButton key={project.id} asChild>
           <Link href={`/projects/${project.id}`}>
             <CardButtonHeader>
@@ -89,20 +84,7 @@ async function ProjectsList() {
 
 export default withI18n(async function ProjectsPage() {
   const client = getSupabaseServerComponentClient();
-  const [{ data: { user } }, userRole] = await Promise.all([
-    client.auth.getUser(),
-    getUserRole(client)
-  ]);
-  
-  if (!user) {
-    return (
-      <EmptyState>
-        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
-        <EmptyStateText>Please sign in to view projects</EmptyStateText>
-      </EmptyState>
-    );
-  }
-
+  const userRole = await getUserRole(client);
   const isSuperAdmin = userRole === 'super-admin';
 
   return (
@@ -118,7 +100,11 @@ export default withI18n(async function ProjectsPage() {
         )}
       </HomeLayoutPageHeader>
       <PageBody>
-        <Suspense fallback={<div>Loading projects...</div>}>
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-8">
+            Loading projects...
+          </div>
+        }>
           <ProjectsList />
         </Suspense>
       </PageBody>
