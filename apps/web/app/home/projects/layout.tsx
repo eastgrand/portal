@@ -1,16 +1,33 @@
 import React, { Suspense } from 'react';
 import { use } from 'react';
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
-import { Page } from '@kit/ui/page';
+import { Page, PageNavigation } from '@kit/ui/page';
 import { withI18n } from '~/lib/i18n/with-i18n';
 import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
+import { HomeMenuNavigation } from '../(user)/_components/home-menu-navigation';
+
+function LayoutContent({ children, workspace }: { 
+  children: React.ReactNode;
+  workspace: Awaited<ReturnType<typeof loadUserWorkspace>>;
+}) {
+  return (
+    <Page>
+      <PageNavigation>
+        <HomeMenuNavigation workspace={workspace} />
+      </PageNavigation>
+      {children}
+    </Page>
+  );
+}
 
 function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const workspace = use(loadUserWorkspace());
   
   return (
     <UserWorkspaceContextProvider value={workspace}>
-      {children}
+      <LayoutContent workspace={workspace}>
+        {children}
+      </LayoutContent>
     </UserWorkspaceContextProvider>
   );
 }
@@ -21,9 +38,7 @@ function ProjectsLayout({ children }: { children: React.ReactNode }) {
       <div className="bg-red-100 p-4">Debug: Layout is rendering</div>
       <Suspense fallback={<div className="p-4">Loading workspace...</div>}>
         <WorkspaceProvider>
-          <Page>
-            {children}
-          </Page>
+          {children}
         </WorkspaceProvider>
       </Suspense>
     </div>
