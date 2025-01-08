@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Suspense } from 'react';
 import Link from 'next/link';
+//import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { Button } from '@kit/ui/button';
 import {
@@ -25,15 +26,14 @@ import { createProjectsService } from '../[account]/projects/_lib/server/project
 import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 
-export const generateMetadata = async () => {
-  const i18n = await createI18nServerInstance();
-  const title = i18n.t('account:projectsPage');
-  return { title };
+export const metadata = {
+  title: 'Projects'
 };
 
 async function ProjectsList() {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
+  
   const [{ data: { user } }, userRole] = await Promise.all([
     client.auth.getUser(),
     getUserRole(client)
@@ -82,9 +82,21 @@ async function ProjectsList() {
   );
 }
 
-export default withI18n(async function ProjectsPage() {
-  const client = getSupabaseServerComponentClient();
-  const userRole = await getUserRole(client);
+async function ProjectsPage() {
+  const [{ data: { user } }, userRole] = await Promise.all([
+    getSupabaseServerComponentClient().auth.getUser(),
+    getUserRole(getSupabaseServerComponentClient())
+  ]);
+
+  if (!user) {
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
+        <EmptyStateText>Please sign in to view projects</EmptyStateText>
+      </EmptyState>
+    );
+  }
+
   const isSuperAdmin = userRole === 'super-admin';
 
   return (
@@ -110,4 +122,6 @@ export default withI18n(async function ProjectsPage() {
       </PageBody>
     </>
   );
-});
+}
+
+export default withI18n(ProjectsPage);
