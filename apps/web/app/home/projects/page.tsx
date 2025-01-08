@@ -37,6 +37,8 @@ export const generateMetadata = async () => {
 };
 
 async function fetchProjects(userId: string, userRole: string | null | undefined) {
+  console.log('Fetching projects with:', { userId, userRole });
+
   const client = getSupabaseServerComponentClient();
   
   try {
@@ -47,23 +49,35 @@ async function fetchProjects(userId: string, userRole: string | null | undefined
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Super admin projects query:', { data, error });
+
       if (error) throw error;
       return data || [];
     }
 
     // Fetch projects for the user via project_members
-    const { data, error } = await client
+    const { data: memberProjects, error: memberError } = await client
       .from('project_members')
       .select('project:projects(*)')
       .eq('user_id', userId)
       .order('project.created_at', { ascending: false });
 
-    if (error) throw error;
+    console.log('Project members query:', { 
+      memberProjects, 
+      memberError,
+      userId 
+    });
+    
+    if (memberError) throw memberError;
     
     // Map and return projects
-    return data?.map(item => item.project) || [];
+    const projects = memberProjects?.map(item => item.project) || [];
+    
+    console.log('Mapped projects:', projects);
+
+    return projects;
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    console.error('Comprehensive error fetching projects:', error);
     return [];
   }
 }
@@ -72,6 +86,12 @@ function ProjectsPage() {
   // Load workspace to get user information
   const workspace = use(loadUserWorkspace());
   
+  console.log('Workspace details:', {
+    userId: workspace.user?.id,
+    userRole: workspace.user?.role,
+    userEmail: workspace.user?.email
+  });
+
   // Fetch projects using user ID and role
   const projects = use(fetchProjects(
     workspace.user.id, 
