@@ -4,17 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
 import { getLogger } from '@kit/shared/logger';
 import { enhanceAction } from '@kit/next/actions';
-import { z } from 'zod';
-
-const CreateProjectSchema = z.object({
-  name: z.string().min(3).max(50),
-  accountId: z.string()
-});
-
-type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
+import { CreateProjectSchema } from './schema/create-project-schema';
 
 export const createProjectAction = enhanceAction(
-  async (data: CreateProjectInput) => {
+  async (data) => {
     const client = getSupabaseServerClient();
     const logger = await getLogger();
     
@@ -45,7 +38,7 @@ export const createProjectAction = enhanceAction(
           },
           'Failed to create project'
         );
-        throw new Error(insertError.message);
+        throw insertError;
       }
 
       if (!projectData) {
@@ -81,7 +74,7 @@ export const createProjectAction = enhanceAction(
           },
           'Failed to add project member'
         );
-        throw new Error('Failed to add project member');
+        throw memberError;
       }
       
       logger.info(
@@ -93,11 +86,8 @@ export const createProjectAction = enhanceAction(
         'Project created successfully'
       );
       
-      // Revalidate paths using the correct structure
-      revalidatePath('/home/projects');
-      revalidatePath('/home/[account]/projects');
-      revalidatePath(`/home/${data.accountId}/projects`);
-      revalidatePath(`/home/${data.accountId}`);
+      // Revalidate only the projects page layout
+      revalidatePath('/home/[account]/projects', 'layout');
       
       return projectData;
     } catch (error) {
@@ -110,11 +100,7 @@ export const createProjectAction = enhanceAction(
         'Failed to create project'
       );
       
-      if (error instanceof Error) {
-        throw error;
-      }
-      
-      throw new Error('Failed to create project');
+      throw error;
     }
   },
   {
