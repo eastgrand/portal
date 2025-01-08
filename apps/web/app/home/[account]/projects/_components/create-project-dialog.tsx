@@ -86,34 +86,38 @@ export function CreateProjectDialog(props: PropsWithChildren) {
     e.stopPropagation();
     router.prefetch('/');
     setIsOpen(true);
-    return false; // Prevent default more aggressively
+    console.log('Dialog state:', isOpen);
+    return false;
   };
   
   return (
     <Dialog modal open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild onClick={handleClick}>
+      <DialogTrigger asChild>
         <span onClickCapture={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          setIsOpen(true);
         }}>
           {props.children}
         </span>
       </DialogTrigger>
-      <DialogContent onInteractOutside={(e) => {
-        e.preventDefault();
-        setIsOpen(false);
-      }}>
-        <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
-          <DialogDescription>
-            Create a new project in your workspace.
-          </DialogDescription>
-        </DialogHeader>
-        <CreateProjectDialogForm 
-          onCancel={() => setIsOpen(false)}
-          onCreateProject={() => setIsOpen(false)}
-        />
-      </DialogContent>
+      {isOpen && (
+        <DialogContent onInteractOutside={(e) => {
+          e.preventDefault();
+          setIsOpen(false);
+        }}>
+          <DialogHeader>
+            <DialogTitle>Create Project</DialogTitle>
+            <DialogDescription>
+              Create a new project in your workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateProjectDialogForm 
+            onCancel={() => setIsOpen(false)}
+            onCreateProject={() => setIsOpen(false)}
+          />
+        </DialogContent>
+      )}
     </Dialog>
   );
 }
