@@ -16,25 +16,32 @@ export function createProjectsService(client: SupabaseClient) {
       }
 
       try {
-        const { data: account, error: accountError } = await client
-          .from('accounts')
-          .select('id')
-          .eq('slug', accountSlug)
-          .single();
+        console.log('Fetching projects with:', { accountSlug, userRole });
 
-        if (accountError) throw accountError;
-        if (!account) throw new Error('Account not found');
-
-        // Super admin sees all projects
+        // For super admin, fetch projects without account filtering
         if (userRole === 'super_admin') {
           const { data, error } = await client
             .from('projects')
             .select('*')
             .order('created_at', { ascending: false });
 
+          console.log('Super admin projects query result:', { data, error });
+
           if (error) throw error;
           return data || [];
         }
+
+        // Find the account ID for the given slug
+        const { data: account, error: accountError } = await client
+          .from('accounts')
+          .select('id')
+          .eq('slug', accountSlug)
+          .single();
+
+        console.log('Account lookup:', { account, accountError });
+
+        if (accountError) throw accountError;
+        if (!account) throw new Error('Account not found');
 
         // Team accounts see owned projects
         if (accountSlug.startsWith('team_')) {
@@ -45,6 +52,8 @@ export function createProjectsService(client: SupabaseClient) {
             .eq('owner_id', account.id)
             .order('created_at', { ascending: false });
 
+          console.log('Team account projects:', { data, error });
+
           if (error) throw error;
           return data || [];
         }
@@ -54,7 +63,9 @@ export function createProjectsService(client: SupabaseClient) {
           .from('project_members')
           .select('project:projects(*)')
           .eq('user_id', account.id)
-          .order('created_at', { ascending: false });
+          .order('project.created_at', { ascending: false });
+
+        console.log('Personal account projects:', { data, error });
 
         if (error) throw error;
         return (data?.map(item => (item.project as unknown) as Project) || []);
