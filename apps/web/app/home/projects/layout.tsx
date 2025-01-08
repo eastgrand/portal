@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { use } from 'react';
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
-import { Page, PageNavigation } from '@kit/ui/page';
+import { Page, PageNavigation, PageBody } from '@kit/ui/page';
 import { withI18n } from '~/lib/i18n/with-i18n';
 import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
 import { HomeMenuNavigation } from '../(user)/_components/home-menu-navigation';
@@ -15,9 +15,9 @@ function LayoutContent({ children, workspace }: {
       <PageNavigation>
         <HomeMenuNavigation workspace={workspace} />
       </PageNavigation>
-      <main>
+      <PageBody className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
         {children}
-      </main>
+      </PageBody>
     </Page>
   );
 }
