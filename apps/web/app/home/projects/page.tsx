@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Suspense } from 'react';
 import Link from 'next/link';
-//import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
+import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { Button } from '@kit/ui/button';
 import {
@@ -24,13 +24,12 @@ import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
 import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
-import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 
 export const metadata = {
   title: 'Projects'
 };
 
-async function ProjectsList() {
+async function loadProjects() {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
   
@@ -40,7 +39,7 @@ async function ProjectsList() {
   ]);
 
   if (!user) {
-    return null;
+    return { user: null, projects: [], userRole: null };
   }
 
   const isSuperAdmin = userRole === 'super-admin';
@@ -49,44 +48,11 @@ async function ProjectsList() {
     : service.getMemberProjects(user.id)
   );
 
-  if (!projects?.length) {
-    return (
-      <EmptyState>
-        <EmptyStateHeading>No projects found</EmptyStateHeading>
-        <EmptyStateText>
-          {isSuperAdmin 
-            ? "You haven't created any projects yet. Create your first project now!"
-            : "You don't have access to any projects yet."}
-        </EmptyStateText>
-        {isSuperAdmin && (
-          <CreateProjectDialog>
-            <EmptyStateButton>Create Project</EmptyStateButton>
-          </CreateProjectDialog>
-        )}
-      </EmptyState>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {projects.map((project) => (
-        <CardButton key={project.id} asChild>
-          <Link href={`/projects/${project.id}`}>
-            <CardButtonHeader>
-              <CardButtonTitle>{project.name}</CardButtonTitle>
-            </CardButtonHeader>
-          </Link>
-        </CardButton>
-      ))}
-    </div>
-  );
+  return { user, projects: projects || [], userRole };
 }
 
-async function ProjectsPage() {
-  const [{ data: { user } }, userRole] = await Promise.all([
-    getSupabaseServerComponentClient().auth.getUser(),
-    getUserRole(getSupabaseServerComponentClient())
-  ]);
+export default withI18n(async function ProjectsPage() {
+  const { user, projects, userRole } = await loadProjects();
 
   if (!user) {
     return (
@@ -112,16 +78,36 @@ async function ProjectsPage() {
         )}
       </HomeLayoutPageHeader>
       <PageBody>
-        <Suspense fallback={
-          <div className="flex items-center justify-center py-8">
-            Loading projects...
-          </div>
-        }>
-          <ProjectsList />
-        </Suspense>
+        <div className="flex flex-col space-y-4">
+          {!projects.length ? (
+            <EmptyState>
+              <EmptyStateHeading>No projects found</EmptyStateHeading>
+              <EmptyStateText>
+                {isSuperAdmin 
+                  ? "You haven't created any projects yet. Create your first project now!"
+                  : "You don't have access to any projects yet."}
+              </EmptyStateText>
+              {isSuperAdmin && (
+                <CreateProjectDialog>
+                  <EmptyStateButton>Create Project</EmptyStateButton>
+                </CreateProjectDialog>
+              )}
+            </EmptyState>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {projects.map((project) => (
+                <CardButton key={project.id} asChild>
+                  <Link href={`/projects/${project.id}`}>
+                    <CardButtonHeader>
+                      <CardButtonTitle>{project.name}</CardButtonTitle>
+                    </CardButtonHeader>
+                  </Link>
+                </CardButton>
+              ))}
+            </div>
+          )}
+        </div>
       </PageBody>
     </>
   );
-}
-
-export default withI18n(ProjectsPage);
+});
