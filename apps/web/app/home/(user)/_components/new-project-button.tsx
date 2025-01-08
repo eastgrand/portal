@@ -2,21 +2,16 @@
 
 import { Button } from '@kit/ui/button';
 import { CreateProjectDialog } from '../../[account]/projects/_components/create-project-dialog';
+import Link from 'next/link';
 
 export function NewProjectButton() {
   return (
-    <CreateProjectDialog>
-      <span onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}>
-        <Button type="button" onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-        }}>
+    <Link href="#" passHref legacyBehavior>
+      <CreateProjectDialog>
+        <Button type="button">
           New Project
         </Button>
-      </span>
-    </CreateProjectDialog>
+      </CreateProjectDialog>
+    </Link>
   );
 }

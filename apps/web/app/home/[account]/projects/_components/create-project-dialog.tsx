@@ -13,7 +13,6 @@ import {
 import { Button } from '@kit/ui/button';
 import { PropsWithChildren } from 'react';
 import { createProjectAction } from '../_lib/server/server-actions';
-import { useRouter } from 'next/navigation';
 
 function CreateProjectDialogForm(props: {
   onCreateProject?: () => void;
@@ -79,45 +78,32 @@ function CreateProjectDialogForm(props: {
 
 export function CreateProjectDialog(props: PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
-  
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    router.prefetch('/');
-    setIsOpen(true);
-    console.log('Dialog state:', isOpen);
-    return false;
-  };
   
   return (
     <Dialog modal open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <span onClickCapture={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsOpen(true);
-        }}>
+        <a 
+          href="#" 
+          onClick={(e) => {
+            e.preventDefault();
+            setIsOpen(true);
+          }}
+        >
           {props.children}
-        </span>
+        </a>
       </DialogTrigger>
-      {isOpen && (
-        <DialogContent onInteractOutside={(e) => {
-          e.preventDefault();
-          setIsOpen(false);
-        }}>
-          <DialogHeader>
-            <DialogTitle>Create Project</DialogTitle>
-            <DialogDescription>
-              Create a new project in your workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateProjectDialogForm 
-            onCancel={() => setIsOpen(false)}
-            onCreateProject={() => setIsOpen(false)}
-          />
-        </DialogContent>
-      )}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Project</DialogTitle>
+          <DialogDescription>
+            Create a new project in your workspace.
+          </DialogDescription>
+        </DialogHeader>
+        <CreateProjectDialogForm 
+          onCancel={() => setIsOpen(false)}
+          onCreateProject={() => setIsOpen(false)}
+        />
+      </DialogContent>
     </Dialog>
   );
 }
