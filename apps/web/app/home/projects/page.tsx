@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { use } from 'react';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 import { Button } from '@kit/ui/button';
@@ -23,7 +25,7 @@ import { withI18n } from '~/lib/i18n/with-i18n';
 // Import the home page header
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 
-//import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
+import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
 
@@ -36,67 +38,38 @@ export const generateMetadata = async () => {
   };
 };
 
-async function fetchProjects(userId: string, userRole: string | null | undefined) {
-  console.log('Fetching projects with:', { userId, userRole });
-
+async function fetchProjects() {
   const client = getSupabaseServerComponentClient();
   
   try {
-    // Super admin sees all projects
-    if (userRole === 'super_admin') {
-      const { data, error } = await client
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false });
+    // Fetch all projects
+    const { data, error } = await client
+      .from('projects')
+      .select(`
+        *,
+        project_members!inner(user_id)
+      `)
+      .eq('project_members.user_id', '163f7fdd-c4c7-4ef9-9d4c-72f98ae4151e');
 
-      console.log('Super admin projects query:', { data, error });
-
-      if (error) throw error;
-      return data || [];
-    }
-
-    // Fetch projects for the user via project_members
-    const { data: memberProjects, error: memberError } = await client
-      .from('project_members')
-      .select('project:projects(*)')
-      .eq('user_id', userId)
-      .order('project.created_at', { ascending: false });
-
-    console.log('Project members query:', { 
-      memberProjects, 
-      memberError,
-      userId 
+    console.log('Projects fetch result:', { 
+      data, 
+      error,
+      userId: '163f7fdd-c4c7-4ef9-9d4c-72f98ae4151e'
     });
-    
-    if (memberError) throw memberError;
-    
-    // Map and return projects
-    const projects = memberProjects?.map(item => item.project) || [];
-    
-    console.log('Mapped projects:', projects);
 
-    return projects;
+    return data ?? [];
   } catch (error) {
-    console.error('Comprehensive error fetching projects:', error);
+    console.error('Error fetching projects:', error);
     return [];
   }
 }
 
-function ProjectsPage() {
-  // Load workspace to get user information
-  const workspace = use(loadUserWorkspace());
-  
-  console.log('Workspace details:', {
-    userId: workspace.user?.id,
-    userRole: workspace.user?.role,
-    userEmail: workspace.user?.email
-  });
+export default function ProjectsPage() {
+  // Explicitly log in server component
+  console.log('Projects Page Server Component Rendering');
 
-  // Fetch projects using user ID and role
-  const projects = use(fetchProjects(
-    workspace.user.id, 
-    workspace.user?.role
-  ));
+  // Fetch projects
+  const projects = use(fetchProjects());
 
   return (
     <>
@@ -142,5 +115,3 @@ function ProjectsPage() {
     </>
   );
 }
-
-export default withI18n(ProjectsPage);
