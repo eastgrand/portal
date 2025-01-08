@@ -18,6 +18,8 @@ import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import ProjectsList from '../(user)/_components/projects-list';
 
+type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
+
 async function fetchProjects() {
   const client = getSupabaseServerComponentClient();
   
@@ -26,19 +28,29 @@ async function fetchProjects() {
       .from('projects')
       .select(`
         *,
-        project_members!inner(user_id)
+        project_members!inner(user_id, role)
       `)
       .eq('project_members.user_id', '163f7fdd-c4c7-4ef9-9d4c-72f98ae4151e');
 
-    return data ?? [];
+    // Assuming the first project's role is the user's role
+    // You might want to adjust this based on your actual data structure
+    const userRole = data?.[0]?.project_members?.[0]?.role as UserRole || 'member';
+
+    return {
+      projects: data ?? [],
+      userRole
+    };
   } catch (error) {
     console.error('Error fetching projects:', error);
-    return [];
+    return {
+      projects: [],
+      userRole: 'member' as UserRole // default fallback
+    };
   }
 }
 
 export default function ProjectsPage() {
-  const projects = use(fetchProjects());
+  const { projects, userRole } = use(fetchProjects());
 
   return (
     <>
@@ -70,7 +82,7 @@ export default function ProjectsPage() {
         </If>
 
         <If condition={projects.length > 0}>
-          <ProjectsList projects={projects} />
+          <ProjectsList projects={projects} userRole={userRole} />
         </If>
       </PageBody>
     </>

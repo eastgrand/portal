@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@kit/ui/table";
 import { Users, ExternalLink, FolderOpen } from "lucide-react";
+import MembersDialog from './members-dialog';
 
 interface Project {
   id: string;
@@ -19,11 +20,14 @@ interface Project {
   created_at: string;
 }
 
+type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
+
 interface ProjectsListProps {
   projects: Project[];
+  userRole: UserRole; // Changed from currentUserRole to match the page prop name
 }
 
-const ProjectsList: React.FC<ProjectsListProps> = ({ projects }) => {
+const ProjectsList: React.FC<ProjectsListProps> = ({ projects, userRole }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Filter projects based on search query
@@ -80,15 +84,19 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects }) => {
                       <FolderOpen className="h-4 w-4 mr-1" />
                       Open
                     </Button>
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
-                      onClick={() => console.log('View members:', project.id)}
+                    <MembersDialog 
+                      projectId={project.id}
+                      currentUserRole={userRole}
                     >
-                      <Users className="h-4 w-4 mr-1" />
-                      Members
-                    </Button>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Members
+                      </Button>
+                    </MembersDialog>
                     <Button 
                       variant="default"
                       size="sm"
