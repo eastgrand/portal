@@ -43,7 +43,12 @@ async function ProjectsList() {
   ]);
   
   if (!user) {
-    throw new Error('User not authenticated');
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
+        <EmptyStateText>Please sign in to view projects</EmptyStateText>
+      </EmptyState>
+    );
   }
 
   const isSuperAdmin = userRole === 'super-admin';
@@ -90,7 +95,12 @@ export default withI18n(async function ProjectsPage() {
   ]);
   
   if (!user) {
-    throw new Error('User not authenticated');
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
+        <EmptyStateText>Please sign in to view projects</EmptyStateText>
+      </EmptyState>
+    );
   }
 
   const isSuperAdmin = userRole === 'super-admin';
