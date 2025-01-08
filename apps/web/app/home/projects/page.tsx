@@ -17,6 +17,7 @@ import {
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import ProjectsList from '../(user)/_components/projects-list';
+import { NewProjectButton } from '../(user)/_components/new-project-button';
 
 type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
 
@@ -61,9 +62,7 @@ export default function ProjectsPage() {
 
       <PageBody>
         <div className="mb-4 flex justify-end">
-            <CreateProjectDialog>
-              <Button>New Project</Button>
-            </CreateProjectDialog>
+          <NewProjectButton />
         </div>
 
         <If condition={projects.length === 0}>
