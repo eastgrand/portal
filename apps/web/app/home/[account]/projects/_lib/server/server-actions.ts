@@ -93,10 +93,11 @@ export const createProjectAction = enhanceAction(
         'Project created successfully'
       );
       
-      // Revalidate all possible paths
-      revalidatePath('/projects');
-      revalidatePath('/[account]/projects');
-      revalidatePath(`/${data.accountId}/projects`);
+      // Revalidate paths using the correct structure
+      revalidatePath('/home/projects');
+      revalidatePath('/home/[account]/projects');
+      revalidatePath(`/home/${data.accountId}/projects`);
+      revalidatePath(`/home/${data.accountId}`);
       
       return projectData;
     } catch (error) {
