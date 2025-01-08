@@ -1,9 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Suspense } from 'react';
+import { Trans } from '@kit/ui/trans';
+import { PageBody } from '@kit/ui/page';
+import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
+import { withI18n } from '~/lib/i18n/with-i18n';
+import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
+
+// Import the home page header or create a similar component
+import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
+
+// Existing projects imports
+import { use } from 'react';
 import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
-import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { Button } from '@kit/ui/button';
 import {
   CardButton,
@@ -17,109 +24,77 @@ import {
   EmptyStateText,
 } from '@kit/ui/empty-state';
 import { If } from '@kit/ui/if';
-import { PageBody } from '@kit/ui/page';
-import { Trans } from '@kit/ui/trans';
-import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
-import { withI18n } from '~/lib/i18n/with-i18n';
-import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
-import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
-import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 
-export const metadata = {
-  title: 'Projects'
+export const generateMetadata = async () => {
+  const i18n = await createI18nServerInstance();
+  const title = i18n.t('projects:projectsPage');
+
+  return {
+    title,
+  };
 };
 
-async function loadProjects() {
+function ProjectsPage({ params }: { params: { account: string } }) {
   const client = getSupabaseServerComponentClient();
+  
+  // Fetch the workspace to get user information
+  const workspace = use(loadUserWorkspace());
+  
+  // Determine the user role based on the user object
+  // Adjust this logic based on how user roles are determined in your application
+  const userRole = workspace.user.role ?? 'member';
+
+  // Create projects service with the client only
   const service = createProjectsService(client);
   
-  const [{ data: { user } }, userRole] = await Promise.all([
-    client.auth.getUser(),
-    getUserRole(client)
-  ]);
-
-  if (!user) {
-    return { user: null, projects: [], userRole: null };
-  }
-
-  const isSuperAdmin = userRole === 'super-admin';
-  const projects = await (isSuperAdmin 
-    ? service.getAllProjects()
-    : service.getMemberProjects(user.id)
-  );
-
-  return { user, projects: projects || [], userRole };
-}
-
-function ProjectContent({ projects, isSuperAdmin }: { projects: any[], isSuperAdmin: boolean }) {
-  if (!projects.length) {
-    return (
-      <EmptyState>
-        <EmptyStateHeading>No projects found</EmptyStateHeading>
-        <EmptyStateText>
-          {isSuperAdmin 
-            ? "You haven't created any projects yet. Create your first project now!"
-            : "You don't have access to any projects yet."}
-        </EmptyStateText>
-        {isSuperAdmin && (
-          <CreateProjectDialog>
-            <EmptyStateButton>Create Project</EmptyStateButton>
-          </CreateProjectDialog>
-        )}
-      </EmptyState>
-    );
-  }
+  // Fetch projects for the specific account
+  const projects = use(service.getProjects(params.account, userRole));
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {projects.map((project) => (
-        <CardButton key={project.id} asChild>
-          <Link href={`/projects/${project.id}`}>
-            <CardButtonHeader>
-              <CardButtonTitle>{project.name}</CardButtonTitle>
-            </CardButtonHeader>
-          </Link>
-        </CardButton>
-      ))}
-    </div>
-  );
-}
-
-export default withI18n(async function ProjectsPage() {
-  const { user, projects, userRole } = await loadProjects();
-
-  if (!user) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <EmptyState>
-          <EmptyStateHeading>Not authenticated</EmptyStateHeading>
-          <EmptyStateText>Please sign in to view projects</EmptyStateText>
-        </EmptyState>
-      </div>
-    );
-  }
-
-  const isSuperAdmin = userRole === 'super-admin';
-
-  return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col">
+    <>
       <HomeLayoutPageHeader
-        title={<Trans i18nKey="common:routes.projects" />}
-        description={<AppBreadcrumbs />}
-      >
-        {isSuperAdmin && (
-          <CreateProjectDialog>
-            <Button type="button">New Project</Button>
-          </CreateProjectDialog>
-        )}
-      </HomeLayoutPageHeader>
+        title={<Trans i18nKey={'projects:projects'} />}
+        description={<Trans i18nKey={'projects:projectsDescription'} />}
+      />
 
       <PageBody>
-        <div className="flex flex-1 items-center justify-center">
-          <ProjectContent projects={projects} isSuperAdmin={isSuperAdmin} />
+        <div className="mb-4 flex justify-end">
+          <Link href={`/home/${params.account}/projects/new`}>
+            <CreateProjectDialog>
+              <Button>New Project</Button>
+            </CreateProjectDialog>
+          </Link>
+        </div>
+
+        <If condition={projects.length === 0}>
+          <EmptyState>
+            <EmptyStateHeading>No projects found</EmptyStateHeading>
+            <EmptyStateText>
+              You still have not created any projects. Create your first project
+              now!
+            </EmptyStateText>
+            <CreateProjectDialog>
+              <EmptyStateButton>Create Project</EmptyStateButton>
+            </CreateProjectDialog>
+          </EmptyState>
+        </If>
+
+        <div className={'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'}>
+          {projects.map((project) => (
+            <CardButton key={project.id} asChild>
+              <Link href={`/home/${params.account}/projects/${project.id}`}>
+                <CardButtonHeader>
+                  <CardButtonTitle>{project.name}</CardButtonTitle>
+                </CardButtonHeader>
+              </Link>
+            </CardButton>
+          ))}
         </div>
       </PageBody>
-    </div>
+    </>
   );
-});
+}
+
+export default withI18n(ProjectsPage);
