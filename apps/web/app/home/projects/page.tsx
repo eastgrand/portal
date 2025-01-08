@@ -1,11 +1,8 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { Button } from '@kit/ui/button';
 import {
@@ -24,52 +21,41 @@ import { PageBody } from '@kit/ui/page';
 import { Trans } from '@kit/ui/trans';
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
-import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
-import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+
+interface Project {
+  id: string;
+  name: string;
+  account_id: string;
+  created_at: string;
+}
 
 export default function ProjectsPage() {
-  console.log('ProjectsPage rendering');
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [projects, setProjects] = useState<any[]>([]);
 
   useEffect(() => {
-    console.log('ProjectsPage mounted');
-    async function loadData() {
+    async function loadProjects() {
       try {
-        const client = getSupabaseServerComponentClient();
-        const service = createProjectsService(client);
-        
-        // Get user and role
-        const [userResponse, role] = await Promise.all([
-          client.auth.getUser(),
-          getUserRole(client)
-        ]);
-
-        if (!userResponse.data.user) {
-          throw new Error('Not authenticated');
+        const response = await fetch('/api/projects');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to load projects');
         }
-
-        setUser(userResponse.data.user);
-        setUserRole(role);
-
-        // Get projects based on role
-        const isSuperAdmin = role === 'super-admin';
-        const projectsData = await (isSuperAdmin 
-          ? service.getAllProjects()
-          : service.getMemberProjects(userResponse.data.user.id)
-        );
-
-        setProjects(projectsData);
+        
+        const data = await response.json();
+        setProjects(data.projects);
+        setUserRole(data.userRole);
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading projects:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load projects');
       } finally {
         setLoading(false);
       }
     }
 
-    loadData();
+    loadProjects();
   }, []);
 
   if (loading) {
@@ -77,6 +63,15 @@ export default function ProjectsPage() {
       <div className="p-4">
         <p>Loading projects...</p>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Error</EmptyStateHeading>
+        <EmptyStateText>{error}</EmptyStateText>
+      </EmptyState>
     );
   }
 
