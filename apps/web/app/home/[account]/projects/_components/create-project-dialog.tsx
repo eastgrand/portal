@@ -14,37 +14,6 @@ import { Button } from '@kit/ui/button';
 import { PropsWithChildren } from 'react';
 import { createProjectAction } from '../_lib/server/server-actions';
 
-export function CreateProjectDialog(props: PropsWithChildren) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  const handleOpenChange = (open: boolean) => {
-    console.log('Dialog open state changing to:', open); // Debug log
-    setIsOpen(open);
-  };
-
-  return (
-    <Dialog onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {props.children}
-      </DialogTrigger>
-      {isOpen && ( // Only render content when open
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Project</DialogTitle>
-            <DialogDescription>
-              Create a new project in your workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateProjectDialogForm 
-            onCancel={() => setIsOpen(false)}
-            onCreateProject={() => setIsOpen(false)}
-          />
-        </DialogContent>
-      )}
-    </Dialog>
-  );
-}
-
 function CreateProjectDialogForm(props: {
   onCreateProject?: () => void;
   onCancel?: () => void;
@@ -104,5 +73,38 @@ function CreateProjectDialogForm(props: {
         </Button>
       </div>
     </form>
+  );
+}
+
+export function CreateProjectDialog(props: PropsWithChildren) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild onClick={(e) => {
+        e.preventDefault();
+        setIsOpen(true);
+      }}>
+        {props.children}
+      </DialogTrigger>
+      {isOpen && (
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Project</DialogTitle>
+            <DialogDescription>
+              Create a new project in your workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <CreateProjectDialogForm 
+            onCancel={() => setIsOpen(false)}
+            onCreateProject={() => setIsOpen(false)}
+          />
+        </DialogContent>
+      )}
+    </Dialog>
   );
 }
