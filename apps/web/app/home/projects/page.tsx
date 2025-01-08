@@ -34,11 +34,11 @@ export const generateMetadata = async () => {
 
 interface PageProps {
   params: {
-    account?: string; // Account slug from the URL
+    account: string;
   };
 }
 
-async function PersonalProjectsPage({ params }: PageProps) {
+async function ProjectsPage({ params }: PageProps) {
   const client = getSupabaseServerComponentClient();
   const service = createProjectsService(client);
   
@@ -52,21 +52,9 @@ async function PersonalProjectsPage({ params }: PageProps) {
   }
 
   const isSuperAdmin = userRole === 'super-admin';
-  const accountSlug = params.account;
   
   try {
-    let projects = [];
-    
-    if (accountSlug) {
-      // If we have an account slug, use the account-specific logic
-      projects = await service.getProjects(accountSlug, userRole);
-    } else if (isSuperAdmin) {
-      // Super admin without account context sees all projects
-      projects = await service.getAllProjects();
-    } else {
-      // Regular user without account context sees their member projects
-      projects = await service.getMemberProjects(user.id);
-    }
+    const projects = await service.getProjects(params.account, userRole);
 
     return (
       <>
@@ -74,7 +62,7 @@ async function PersonalProjectsPage({ params }: PageProps) {
           title={<Trans i18nKey="common:routes.projects" />}
           description={<AppBreadcrumbs />}
         >
-          {(isSuperAdmin || accountSlug?.startsWith('team_')) && (
+          {(isSuperAdmin || params.account.startsWith('team_')) && (
             <CreateProjectDialog>
               <Button type="button">
                 New Project
@@ -89,13 +77,13 @@ async function PersonalProjectsPage({ params }: PageProps) {
               <EmptyStateText>
                 {isSuperAdmin 
                   ? "You haven't created any projects yet. Create your first project now!"
-                  : accountSlug?.startsWith('team_')
+                  : params.account.startsWith('team_')
                   ? "This team doesn't have any projects yet. Create your first project now!"
                   : "You don't have access to any projects yet."}
               </EmptyStateText>
-              {(isSuperAdmin || accountSlug?.startsWith('team_')) && (
+              {(isSuperAdmin || params.account.startsWith('team_')) && (
                 <CreateProjectDialog>
-                  <EmptyStateButton type="button">
+                  <EmptyStateButton>
                     Create Project
                   </EmptyStateButton>
                 </CreateProjectDialog>
@@ -105,7 +93,7 @@ async function PersonalProjectsPage({ params }: PageProps) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {projects?.map((project) => (
               <CardButton key={project.id} asChild>
-                <Link href={`/projects/${project.id}`}>
+                <Link href={`/home/${params.account}/projects/${project.id}`}>
                   <CardButtonHeader>
                     <CardButtonTitle>{project.name}</CardButtonTitle>
                   </CardButtonHeader>
@@ -129,4 +117,4 @@ async function PersonalProjectsPage({ params }: PageProps) {
   }
 }
 
-export default withI18n(PersonalProjectsPage);
+export default withI18n(ProjectsPage);
