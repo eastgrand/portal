@@ -1,18 +1,26 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { use } from 'react';
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
 import { withI18n } from '~/lib/i18n/with-i18n';
 import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
-import React from 'react';
 
-class ErrorBoundaryFallback extends React.Component<{
+type ErrorBoundaryProps = {
   children: React.ReactNode;
   fallback: React.ReactNode;
-}> {
-  state = { hasError: false, error: null };
+};
 
-  static getDerivedStateFromError(error: any) {
+type ErrorBoundaryState = {
+  hasError: boolean;
+  error: Error | null;
+};
+
+class ErrorBoundaryFallback extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
     return { hasError: true, error };
   }
 
@@ -25,7 +33,7 @@ class ErrorBoundaryFallback extends React.Component<{
   }
 }
 
-function WorkspaceProvider({ children }: React.PropsWithChildren) {
+function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const workspace = use(loadUserWorkspace());
   
   return (
@@ -35,7 +43,7 @@ function WorkspaceProvider({ children }: React.PropsWithChildren) {
   );
 }
 
-export default withI18n(function ProjectsLayout({ children }: React.PropsWithChildren) {
+export default withI18n(function ProjectsLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="bg-red-100 p-4">Debug: Layout is rendering</div>
