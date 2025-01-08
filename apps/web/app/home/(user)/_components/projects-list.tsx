@@ -72,24 +72,27 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects }) => {
                 <TableCell>
                   <div className="flex space-x-2">
                     <Button 
-                      variant="outline" 
+                      variant="default"
                       size="sm"
+                      className="bg-green-600 hover:bg-green-700"
                       onClick={() => console.log('Open project:', project.id)}
                     >
                       <FolderOpen className="h-4 w-4 mr-1" />
                       Open
                     </Button>
                     <Button 
-                      variant="outline" 
+                      variant="default"
                       size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
                       onClick={() => console.log('View members:', project.id)}
                     >
                       <Users className="h-4 w-4 mr-1" />
                       Members
                     </Button>
                     <Button 
-                      variant="outline" 
+                      variant="default"
                       size="sm"
+                      className="bg-orange-500 hover:bg-orange-600"
                       onClick={() => console.log('Get embed code:', project.id)}
                     >
                       <ExternalLink className="h-4 w-4 mr-1" />
