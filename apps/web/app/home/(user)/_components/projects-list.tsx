@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { Button } from "@kit/ui/button";
 import { Input } from "@kit/ui/input";
