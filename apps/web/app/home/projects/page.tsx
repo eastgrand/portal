@@ -42,14 +42,29 @@ async function fetchProjects(account: string) {
   // Load workspace to get user role and information
   const workspace = await loadUserWorkspace();
   
+  console.log('Workspace information:', {
+    userId: workspace.user?.id,
+    userEmail: workspace.user?.email,
+    userRole: workspace.user?.role,
+    account,
+    accounts: workspace.accounts
+  });
+
   // Determine user role, defaulting to 'member' if not found
   const userRole = workspace.user?.role ?? 'member';
 
   const service = createProjectsService(client);
   
   try {
+    // If no account is provided, try to use the user's primary account
+    const accountToUse = account !== 'undefined' 
+      ? account 
+      : workspace.accounts?.[0]?.value ?? workspace.user?.id;
+
+    console.log('Account to use:', accountToUse);
+
     // Fetch projects for the account with the user's role
-    return await service.getProjects(account, userRole);
+    return await service.getProjects(accountToUse, userRole);
   } catch (error) {
     console.error('Failed to fetch projects:', error);
     return [];
@@ -57,6 +72,8 @@ async function fetchProjects(account: string) {
 }
 
 function ProjectsPage({ params }: { params: { account: string } }) {
+  console.log('Projects Page Params:', params);
+
   const projects = use(fetchProjects(params.account));
 
   return (
@@ -68,7 +85,7 @@ function ProjectsPage({ params }: { params: { account: string } }) {
 
       <PageBody>
         <div className="mb-4 flex justify-end">
-          <Link href={`/home/${params.account}/projects/new`}>
+          <Link href={`/home/${params.account || 'undefined'}/projects/new`}>
             <CreateProjectDialog>
               <Button>New Project</Button>
             </CreateProjectDialog>
@@ -91,7 +108,7 @@ function ProjectsPage({ params }: { params: { account: string } }) {
         <div className={'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'}>
           {projects.map((project) => (
             <CardButton key={project.id} asChild>
-              <Link href={`/home/${params.account}/projects/${project.id}`}>
+              <Link href={`/home/${params.account || 'undefined'}/projects/${project.id}`}>
                 <CardButtonHeader>
                   <CardButtonTitle>{project.name}</CardButtonTitle>
                 </CardButtonHeader>
