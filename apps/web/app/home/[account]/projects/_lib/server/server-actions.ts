@@ -11,97 +11,42 @@ export const createProjectAction = enhanceAction(
     const client = getSupabaseServerClient();
     const logger = await getLogger();
     
-    try {
-      logger.info(
-        {
-          accountId: data.accountId,
-          name: data.name,
-        },
-        'Creating project...'
-      );
-      
-      const { data: projectData, error: insertError } = await client
-        .from('projects')
-        .insert({
-          account_id: data.accountId,
-          name: data.name,
-        })
-        .select()
-        .single();
-      
-      if (insertError) {
-        logger.error(
-          {
-            accountId: data.accountId,
-            name: data.name,
-            error: insertError,
-          },
-          'Failed to create project'
-        );
-        throw insertError;
-      }
-
-      if (!projectData) {
-        throw new Error('Failed to create project: No data returned');
-      }
-      
-      // Add the creator as a project member
-      const { data: { user }, error: userError } = await client.auth.getUser();
-      
-      if (userError) {
-        logger.error({ error: userError }, 'Failed to get user');
-        throw new Error('Failed to get user information');
-      }
-
-      if (!user?.id) {
-        throw new Error('User not found');
-      }
-
-      const { error: memberError } = await client
-        .from('project_members')
-        .insert({
-          project_id: projectData.id,
-          user_id: user.id,
-          role: 'owner'
-        });
-
-      if (memberError) {
-        logger.error(
-          {
-            projectId: projectData.id,
-            userId: user.id,
-            error: memberError,
-          },
-          'Failed to add project member'
-        );
-        throw memberError;
-      }
-      
-      logger.info(
-        {
-          accountId: data.accountId,
-          name: data.name,
-          projectId: projectData.id,
-        },
-        'Project created successfully'
-      );
-      
-      // Revalidate only the projects page layout
-      revalidatePath('/home/[account]/projects', 'layout');
-      
-      return projectData;
-    } catch (error) {
+    logger.info(
+      {
+        accountId: data.accountId,
+        name: data.name,
+      },
+      'Creating project...'
+    );
+    
+    const response = await client
+      .from('projects')
+      .insert({
+        account_id: data.accountId,
+        name: data.name,
+      });
+    
+    if (response.error) {
       logger.error(
         {
           accountId: data.accountId,
           name: data.name,
-          error,
+          error: response.error,
         },
         'Failed to create project'
       );
-      
-      throw error;
+      throw response.error;
     }
+    
+    logger.info(
+      {
+        accountId: data.accountId,
+        name: data.name,
+      },
+      'Project created'
+    );
+    
+    revalidatePath('/home/[account]/projects', 'layout');
   },
   {
     schema: CreateProjectSchema,
