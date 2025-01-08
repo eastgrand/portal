@@ -13,6 +13,7 @@ import {
 import { Button } from '@kit/ui/button';
 import { PropsWithChildren } from 'react';
 import { createProjectAction } from '../_lib/server/server-actions';
+import { useRouter } from 'next/navigation';
 
 function CreateProjectDialogForm(props: {
   onCreateProject?: () => void;
@@ -78,19 +79,24 @@ function CreateProjectDialogForm(props: {
 
 export function CreateProjectDialog(props: PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
   
   return (
     <Dialog modal open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <div onClick={(e) => {
+        <span onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          router.prefetch('/'); // Prefetch home to prevent navigation
           setIsOpen(true);
         }}>
           {props.children}
-        </div>
+        </span>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent onInteractOutside={(e) => {
+        e.preventDefault();
+        setIsOpen(false);
+      }}>
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
           <DialogDescription>
