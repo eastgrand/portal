@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { use } from 'react';
 import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
@@ -40,7 +39,7 @@ export const generateMetadata = async () => {
 async function fetchProjects(account: string) {
   const client = getSupabaseServerComponentClient();
   
-  // Load workspace to get user role
+  // Load workspace to get user role and information
   const workspace = await loadUserWorkspace();
   
   // Determine user role, defaulting to 'member' if not found
@@ -49,6 +48,7 @@ async function fetchProjects(account: string) {
   const service = createProjectsService(client);
   
   try {
+    // Fetch projects for the account with the user's role
     return await service.getProjects(account, userRole);
   } catch (error) {
     console.error('Failed to fetch projects:', error);
@@ -79,8 +79,8 @@ function ProjectsPage({ params }: { params: { account: string } }) {
           <EmptyState>
             <EmptyStateHeading>No projects found</EmptyStateHeading>
             <EmptyStateText>
-              You still have not created any projects. Create your first project
-              now!
+              You are not a member of any projects yet. Create your first project
+              or wait for an invitation!
             </EmptyStateText>
             <CreateProjectDialog>
               <EmptyStateButton>Create Project</EmptyStateButton>

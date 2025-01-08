@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { SupabaseClient } from '@supabase/supabase-js';
 
 interface Project {
