@@ -1,13 +1,4 @@
-import { Trans } from '@kit/ui/trans';
-import { PageBody } from '@kit/ui/page';
-import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
-import { withI18n } from '~/lib/i18n/with-i18n';
-import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
-
-// Import the home page header or create a similar component
-import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
-
-// Existing projects imports
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { use } from 'react';
 import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
@@ -24,8 +15,18 @@ import {
   EmptyStateText,
 } from '@kit/ui/empty-state';
 import { If } from '@kit/ui/if';
+import { Trans } from '@kit/ui/trans';
+import { PageBody } from '@kit/ui/page';
+
+import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
+import { withI18n } from '~/lib/i18n/with-i18n';
+
+// Import the home page header
+import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
+
 import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
+import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
 
 export const generateMetadata = async () => {
   const i18n = await createI18nServerInstance();
@@ -36,21 +37,27 @@ export const generateMetadata = async () => {
   };
 };
 
-function ProjectsPage({ params }: { params: { account: string } }) {
+async function fetchProjects(account: string) {
   const client = getSupabaseServerComponentClient();
   
-  // Fetch the workspace to get user information
-  const workspace = use(loadUserWorkspace());
+  // Load workspace to get user role
+  const workspace = await loadUserWorkspace();
   
-  // Determine the user role based on the user object
-  // Adjust this logic based on how user roles are determined in your application
-  const userRole = workspace.user.role ?? 'member';
+  // Determine user role, defaulting to 'member' if not found
+  const userRole = workspace.user?.role ?? 'member';
 
-  // Create projects service with the client only
   const service = createProjectsService(client);
   
-  // Fetch projects for the specific account
-  const projects = use(service.getProjects(params.account, userRole));
+  try {
+    return await service.getProjects(account, userRole);
+  } catch (error) {
+    console.error('Failed to fetch projects:', error);
+    return [];
+  }
+}
+
+function ProjectsPage({ params }: { params: { account: string } }) {
+  const projects = use(fetchProjects(params.account));
 
   return (
     <>
