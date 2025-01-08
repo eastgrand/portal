@@ -61,11 +61,9 @@ export default function ProjectsPage() {
 
       <PageBody>
         <div className="mb-4 flex justify-end">
-          <Link href="/home/projects/new">
             <CreateProjectDialog>
               <Button>New Project</Button>
             </CreateProjectDialog>
-          </Link>
         </div>
 
         <If condition={projects.length === 0}>
