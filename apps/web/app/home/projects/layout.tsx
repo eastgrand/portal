@@ -1,86 +1,14 @@
-import { use } from 'react';
-import { cookies } from 'next/headers';
-import { UserWorkspaceContextProvider } from '@kit/accounts/components';
-import {
-  Page,
-  PageLayoutStyle,
-  PageMobileNavigation,
-  PageNavigation,
-} from '@kit/ui/page';
-import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
-import { Toaster } from '@kit/ui/toaster';
-import { AppLogo } from '~/components/app-logo';
-import { personalAccountNavigationConfig } from '~/config/personal-account-navigation.config';
-import { withI18n } from '~/lib/i18n/with-i18n';
-import { HomeMenuNavigation } from '../(user)/_components/home-menu-navigation';
-import { HomeMobileNavigation } from '../(user)/_components/home-mobile-navigation';
-import { HomeSidebar } from '../(user)/_components/home-sidebar';
-import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
-
-function ProjectsLayout({ children }: React.PropsWithChildren) {
-  const style = use(getLayoutStyle());
-  const workspace = use(loadUserWorkspace());
-  const sidebarMinimized = personalAccountNavigationConfig.sidebarCollapsed;
-
-  if (style === 'sidebar') {
-    return (
-      <UserWorkspaceContextProvider value={workspace}>
-        <SidebarProvider minimized={sidebarMinimized}>
-          <Page style={'sidebar'}>
-            <PageNavigation>
-              <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
-            </PageNavigation>
-
-            <PageMobileNavigation className={'flex items-center justify-between'}>
-              <MobileNavigation workspace={workspace} />
-            </PageMobileNavigation>
-
-            {children}
-            <Toaster />
-          </Page>
-        </SidebarProvider>
-      </UserWorkspaceContextProvider>
-    );
-  }
-
-  return (
-    <UserWorkspaceContextProvider value={workspace}>
-      <Page style={'header'}>
-        <PageNavigation>
-          <HomeMenuNavigation workspace={workspace} />
-        </PageNavigation>
-
-        <PageMobileNavigation className={'flex items-center justify-between'}>
-          <MobileNavigation workspace={workspace} />
-        </PageMobileNavigation>
-
-        {children}
-        <Toaster />
-      </Page>
-    </UserWorkspaceContextProvider>
-  );
-}
-
-function MobileNavigation({
-  workspace,
+export default function ProjectsLayout({
+  children,
 }: {
-  workspace: Awaited<ReturnType<typeof loadUserWorkspace>>;
+  children: React.ReactNode;
 }) {
   return (
     <>
-      <AppLogo />
-      <HomeMobileNavigation workspace={workspace} />
+      {/* Test layout wrapper */}
+      <div className="flex min-h-screen w-full flex-col">
+        {children}
+      </div>
     </>
   );
 }
-
-async function getLayoutStyle() {
-  const cookieStore = await cookies();
-
-  return (
-    (cookieStore.get('layout-style')?.value as PageLayoutStyle) ??
-    personalAccountNavigationConfig.style
-  );
-}
-
-export default withI18n(ProjectsLayout);
