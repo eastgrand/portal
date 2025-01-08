@@ -19,7 +19,10 @@ export function CreateProjectDialog(props: PropsWithChildren) {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}>
         {props.children}
       </DialogTrigger>
       <DialogContent>
