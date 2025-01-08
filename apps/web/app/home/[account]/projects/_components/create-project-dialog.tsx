@@ -79,32 +79,29 @@ function CreateProjectDialogForm(props: {
 export function CreateProjectDialog(props: PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
   
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild onClick={(e) => {
-        e.preventDefault();
-        setIsOpen(true);
-      }}>
-        {props.children}
+    <Dialog modal open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <div onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(true);
+        }}>
+          {props.children}
+        </div>
       </DialogTrigger>
-      {isOpen && (
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Project</DialogTitle>
-            <DialogDescription>
-              Create a new project in your workspace.
-            </DialogDescription>
-          </DialogHeader>
-          <CreateProjectDialogForm 
-            onCancel={() => setIsOpen(false)}
-            onCreateProject={() => setIsOpen(false)}
-          />
-        </DialogContent>
-      )}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Project</DialogTitle>
+          <DialogDescription>
+            Create a new project in your workspace.
+          </DialogDescription>
+        </DialogHeader>
+        <CreateProjectDialogForm 
+          onCancel={() => setIsOpen(false)}
+          onCreateProject={() => setIsOpen(false)}
+        />
+      </DialogContent>
     </Dialog>
   );
 }

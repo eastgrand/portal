@@ -6,7 +6,7 @@ import { CreateProjectDialog } from '../../[account]/projects/_components/create
 export function NewProjectButton() {
   return (
     <CreateProjectDialog>
-      <Button type="button">
+      <Button type="button" onClick={(e) => e.preventDefault()}>
         New Project
       </Button>
     </CreateProjectDialog>
