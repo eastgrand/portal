@@ -81,14 +81,20 @@ export function CreateProjectDialog(props: PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.prefetch('/');
+    setIsOpen(true);
+    return false; // Prevent default more aggressively
+  };
+  
   return (
     <Dialog modal open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <span onClick={(e) => {
+      <DialogTrigger asChild onClick={handleClick}>
+        <span onClickCapture={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          router.prefetch('/'); // Prefetch home to prevent navigation
-          setIsOpen(true);
         }}>
           {props.children}
         </span>
