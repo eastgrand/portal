@@ -11,11 +11,13 @@ function LayoutContent({ children, workspace }: {
   workspace: Awaited<ReturnType<typeof loadUserWorkspace>>;
 }) {
   return (
-    <Page>
+    <Page style="header">
       <PageNavigation>
         <HomeMenuNavigation workspace={workspace} />
       </PageNavigation>
-      {children}
+      <main>
+        {children}
+      </main>
     </Page>
   );
 }
@@ -34,7 +36,7 @@ function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
 function ProjectsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen w-full flex-col">
       <div className="bg-red-100 p-4">Debug: Layout is rendering</div>
       <Suspense fallback={<div className="p-4">Loading workspace...</div>}>
         <WorkspaceProvider>
