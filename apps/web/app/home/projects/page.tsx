@@ -19,10 +19,12 @@ import { PageBody } from '@kit/ui/page';
 import { Trans } from '@kit/ui/trans';
 import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
 import { withI18n } from '~/lib/i18n/with-i18n';
+import { UserWorkspaceContextProvider } from '@kit/accounts/components';
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
 import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
 
 export const generateMetadata = async () => {
   const i18n = await createI18nServerInstance();
@@ -43,7 +45,12 @@ async function ProjectsList() {
   ]);
   
   if (!user) {
-    throw new Error('User not authenticated');
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
+        <EmptyStateText>Please sign in to view projects</EmptyStateText>
+      </EmptyState>
+    );
   }
 
   const isSuperAdmin = userRole === 'super-admin';
@@ -82,7 +89,7 @@ async function ProjectsList() {
   );
 }
 
-export default withI18n(async function ProjectsPage() {
+async function ProjectsPageContent() {
   const client = getSupabaseServerComponentClient();
   const [{ data: { user } }, userRole] = await Promise.all([
     client.auth.getUser(),
@@ -90,7 +97,12 @@ export default withI18n(async function ProjectsPage() {
   ]);
   
   if (!user) {
-    throw new Error('User not authenticated');
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
+        <EmptyStateText>Please sign in to view projects</EmptyStateText>
+      </EmptyState>
+    );
   }
 
   const isSuperAdmin = userRole === 'super-admin';
@@ -113,5 +125,15 @@ export default withI18n(async function ProjectsPage() {
         </Suspense>
       </PageBody>
     </>
+  );
+}
+
+export default withI18n(async function ProjectsPage() {
+  const workspace = await loadUserWorkspace();
+  
+  return (
+    <UserWorkspaceContextProvider value={workspace}>
+      <ProjectsPageContent />
+    </UserWorkspaceContextProvider>
   );
 });
