@@ -1,7 +1,107 @@
-export default function PersonalProjectsPage() {
-  return (
-    <div>
-      <h1>Test - Personal Projects Page</h1>
-    </div>
-  );
+import Link from 'next/link';
+import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
+import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
+import { Button } from '@kit/ui/button';
+import {
+  CardButton,
+  CardButtonHeader,
+  CardButtonTitle,
+} from '@kit/ui/card-button';
+import {
+  EmptyState,
+  EmptyStateButton,
+  EmptyStateHeading,
+  EmptyStateText,
+} from '@kit/ui/empty-state';
+import { If } from '@kit/ui/if';
+import { PageBody } from '@kit/ui/page';
+import { Trans } from '@kit/ui/trans';
+import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
+import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
+import { createProjectsService } from '../[account]/projects/_lib/server/projects/projects.service';
+import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+
+async function ProjectsPage() {
+  const client = getSupabaseServerComponentClient();
+  const service = createProjectsService(client);
+  
+  const [{ data: { user } }, userRole] = await Promise.all([
+    client.auth.getUser(),
+    getUserRole(client)
+  ]);
+
+  if (!user) {
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Not authenticated</EmptyStateHeading>
+        <EmptyStateText>Please sign in to view projects</EmptyStateText>
+      </EmptyState>
+    );
+  }
+
+  const isSuperAdmin = userRole === 'super-admin';
+  
+  try {
+    const projects = await (isSuperAdmin 
+      ? service.getAllProjects()
+      : service.getMemberProjects(user.id)
+    );
+
+    return (
+      <>
+        <HomeLayoutPageHeader
+          title={<Trans i18nKey="common:routes.projects" />}
+          description={<AppBreadcrumbs />}
+        >
+          {isSuperAdmin && (
+            <CreateProjectDialog>
+              <Button>New Project</Button>
+            </CreateProjectDialog>
+          )}
+        </HomeLayoutPageHeader>
+
+        <PageBody>
+          <If condition={!projects || projects.length === 0}>
+            <EmptyState>
+              <EmptyStateHeading>No projects found</EmptyStateHeading>
+              <EmptyStateText>
+                {isSuperAdmin 
+                  ? "You haven't created any projects yet. Create your first project now!"
+                  : "You don't have access to any projects yet."}
+              </EmptyStateText>
+              {isSuperAdmin && (
+                <CreateProjectDialog>
+                  <EmptyStateButton>Create Project</EmptyStateButton>
+                </CreateProjectDialog>
+              )}
+            </EmptyState>
+          </If>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {projects?.map((project) => (
+              <CardButton key={project.id} asChild>
+                <Link href={`/projects/${project.id}`}>
+                  <CardButtonHeader>
+                    <CardButtonTitle>{project.name}</CardButtonTitle>
+                  </CardButtonHeader>
+                </Link>
+              </CardButton>
+            ))}
+          </div>
+        </PageBody>
+      </>
+    );
+  } catch (error) {
+    console.error('Error rendering projects page:', error);
+    return (
+      <EmptyState>
+        <EmptyStateHeading>Error loading projects</EmptyStateHeading>
+        <EmptyStateText>
+          There was an error loading your projects. Please try refreshing the page.
+        </EmptyStateText>
+      </EmptyState>
+    );
+  }
 }
+
+export default ProjectsPage;
