@@ -80,17 +80,19 @@ export function CreateProjectDialog(props: PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
   
   return (
-    <Dialog modal open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <a 
-          href="#" 
+        <div 
+          role="button"
+          style={{ cursor: 'pointer' }}
           onClick={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             setIsOpen(true);
           }}
         >
           {props.children}
-        </a>
+        </div>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
