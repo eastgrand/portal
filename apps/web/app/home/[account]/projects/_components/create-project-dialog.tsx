@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useTeamAccountWorkspace } from '@kit/team-accounts/hooks/use-team-account-workspace';
@@ -14,24 +15,25 @@ import { Button } from '@kit/ui/button';
 import { PropsWithChildren } from 'react';
 import { createProjectAction } from '../_lib/server/server-actions';
 
-export function CreateProjectDialog(props: PropsWithChildren) {
-  const [isOpen, setIsOpen] = useState(false);
+interface CreateProjectDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  trigger: React.ReactNode;
+}
 
+export function CreateProjectDialog({ isOpen, onOpenChange, trigger }: CreateProjectDialogProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        {props.children}
+        {trigger}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
-          <DialogDescription>
-            Create a new project in your workspace.
-          </DialogDescription>
         </DialogHeader>
         <CreateProjectDialogForm 
-          onCancel={() => setIsOpen(false)}
-          onCreateProject={() => setIsOpen(false)}
+          onCancel={() => onOpenChange(false)}
+          onCreateProject={() => onOpenChange(false)}
         />
       </DialogContent>
     </Dialog>
