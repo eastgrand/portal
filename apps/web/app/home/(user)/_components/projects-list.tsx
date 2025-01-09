@@ -11,12 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@kit/ui/table";
-import { Users, ExternalLink, Maximize2 } from "lucide-react";
+import { Users, ExternalLink, Maximize2, X } from "lucide-react";
 import MembersDialog from './members-dialog';
 import {
   Dialog,
   DialogContent,
-  DialogTrigger
+  DialogTrigger,
+  DialogClose
 } from "@kit/ui/dialog";
 
 interface Project {
@@ -48,10 +49,21 @@ const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, child
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-6xl h-[80vh]">
+      <DialogContent className="max-w-[100vw] w-screen h-screen p-0 rounded-none">
+        <div className="absolute right-4 top-4 z-50">
+          <DialogClose asChild>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="bg-white hover:bg-gray-100"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogClose>
+        </div>
         <iframe 
           src={appUrl}
-          className="w-full h-full border-0 rounded-md"
+          className="w-full h-full border-0"
           allow="accelerometer; camera; encrypted-media; fullscreen; geolocation; gyroscope; microphone; midi"
         />
       </DialogContent>
