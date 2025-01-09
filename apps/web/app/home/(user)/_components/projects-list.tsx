@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import React, { useState, ReactNode } from 'react';
@@ -11,11 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@kit/ui/table";
-import { Users, ExternalLink, Maximize2, X } from "lucide-react";
+import { Users, ExternalLink, Maximize2, X, Code2, Copy, Check } from "lucide-react";
 import MembersDialog from './members-dialog';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogClose
 } from "@kit/ui/dialog";
@@ -38,6 +41,71 @@ interface ProjectIframeDialogProps {
   appUrl: string;
   children: ReactNode;
 }
+
+interface EmbedProjectDialogProps {
+  appUrl: string;
+  children: ReactNode;
+}
+
+const EmbedProjectDialog: React.FC<EmbedProjectDialogProps> = ({ appUrl, children }) => {
+  const [copied, setCopied] = useState(false);
+
+  const iframeCode = `<iframe
+  src="${appUrl}"
+  width="100%"
+  height="600"
+  frameborder="0"
+  allow="accelerometer; camera; encrypted-media; geolocation; microphone"
+></iframe>`;
+
+  const handleCopyCode = async () => {
+    await navigator.clipboard.writeText(iframeCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Embed Project</DialogTitle>
+        </DialogHeader>
+        
+        <div className="mt-4">
+          <div className="relative">
+            <pre className="bg-slate-950 text-slate-50 p-4 rounded-lg overflow-x-auto">
+              <code>{iframeCode}</code>
+            </pre>
+          </div>
+          
+          <div className="mt-4 flex justify-end">
+            <Button
+              onClick={handleCopyCode}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  Copy Code
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, children }) => {
   if (!appUrl) {
@@ -142,15 +210,16 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects, userRole }) => {
                         Members
                       </Button>
                     </MembersDialog>
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="bg-orange-500 hover:bg-orange-600"
-                      onClick={() => console.log('Get embed code:', project.id)}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Embed
-                    </Button>
+                    <EmbedProjectDialog appUrl={project.app_url}>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Embed
+                      </Button>
+                    </EmbedProjectDialog>
                   </div>
                 </TableCell>
               </TableRow>
