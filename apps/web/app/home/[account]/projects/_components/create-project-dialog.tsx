@@ -82,7 +82,7 @@ export function CreateProjectDialog(props: PropsWithChildren) {
   
   useEffect(() => {
     // When the component mounts, add a click listener to the button
-    const button = document.querySelector('button:not([data-test="account-selector-trigger"])');
+    const button = document.querySelector('button[data-test="new-project-button"]');
     if (button) {
       console.log('Found button:', button); // Debug log
       const handleClick = (event: Event) => {
@@ -104,7 +104,7 @@ export function CreateProjectDialog(props: PropsWithChildren) {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <div data-testid="new-project-button">
+        <div>
           {props.children}
         </div>
       </DialogTrigger>

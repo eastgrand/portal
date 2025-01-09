@@ -10,7 +10,6 @@ export function NewProjectButton() {
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Block navigation
     router.push('#');
     console.log('Click intercepted');
   }, [router]);
@@ -19,7 +18,7 @@ export function NewProjectButton() {
     <div onClickCapture={handleClick}>
       <CreateProjectDialog>
         <div style={{ cursor: 'pointer' }} onClick={(e) => e.preventDefault()}>
-          <Button type="button" onClick={(e) => e.preventDefault()}>
+          <Button type="button" data-test="new-project-button">
             New Project
           </Button>
         </div>
