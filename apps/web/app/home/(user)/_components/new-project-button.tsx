@@ -13,9 +13,15 @@ export function NewProjectButton() {
         isOpen={isDialogOpen} 
         onOpenChange={setIsDialogOpen}
         trigger={
-          <Button 
+            <Button 
             type="button" 
             data-test="new-project-button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('Button clicked', e);
+              setIsDialogOpen(true);
+            }}
           >
             New Project
           </Button>
