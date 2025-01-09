@@ -16,11 +16,6 @@ export function NewProjectButton() {
           <Button 
             type="button" 
             data-test="new-project-button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsDialogOpen(true);
-            }}
           >
             New Project
           </Button>
