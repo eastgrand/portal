@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { use } from 'react';
 import { headers } from 'next/headers';
@@ -73,11 +72,9 @@ export default function ProjectsPage() {
               You are not a member of any projects yet. Create your first project
               or wait for an invitation!
             </EmptyStateText>
-            <CreateProjectDialog
-              isOpen={false}
-              onOpenChange={() => {}}
-              trigger={<EmptyStateButton>Create Project</EmptyStateButton>}
-            />
+            <CreateProjectDialog>
+             <EmptyStateButton>Create Project</EmptyStateButton>
+           </CreateProjectDialog>
           </EmptyState>
         </If>
 
