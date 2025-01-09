@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { use } from 'react';
 import { headers } from 'next/headers';
@@ -19,6 +20,19 @@ import ProjectsList from '../../(user)/_components/projects-list';
 
 type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
 
+interface ProjectMember {
+  user_id: string;
+  role: UserRole;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  created_at: string;
+  app_url: string;
+  project_members?: ProjectMember[];
+}
+
 async function fetchProjects() {
   const client = getSupabaseServerComponentClient();
   
@@ -31,16 +45,21 @@ async function fetchProjects() {
       `)
       .eq('project_members.user_id', '163f7fdd-c4c7-4ef9-9d4c-72f98ae4151e');
 
-    const userRole = data?.[0]?.project_members?.[0]?.role as UserRole || 'member';
+    if (error) {
+      throw error;
+    }
+
+    const projects = data as unknown as Project[] ?? [];
+    const userRole = projects[0]?.project_members?.[0]?.role ?? 'member';
 
     return {
-      projects: data ?? [],
-      userRole
+      projects,
+      userRole: userRole as UserRole
     };
   } catch (error) {
     console.error('Error fetching projects:', error);
     return {
-      projects: [],
+      projects: [] as Project[],
       userRole: 'member' as UserRole
     };
   }

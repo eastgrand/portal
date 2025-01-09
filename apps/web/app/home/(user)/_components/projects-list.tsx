@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, ReactNode } from 'react';
 import { Button } from "@kit/ui/button";
 import { Input } from "@kit/ui/input";
 import {
@@ -11,21 +11,53 @@ import {
   TableHeader,
   TableRow,
 } from "@kit/ui/table";
-import { Users, ExternalLink, FolderOpen } from "lucide-react";
+import { Users, ExternalLink, Maximize2 } from "lucide-react";
 import MembersDialog from './members-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger
+} from "@kit/ui/dialog";
 
 interface Project {
   id: string;
   name: string;
   created_at: string;
+  app_url: string;
 }
 
 type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
 
 interface ProjectsListProps {
   projects: Project[];
-  userRole: UserRole; // Changed from currentUserRole to match the page prop name
+  userRole: UserRole;
 }
+
+interface ProjectIframeDialogProps {
+  appUrl: string;
+  children: ReactNode;
+}
+
+const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, children }) => {
+  if (!appUrl) {
+    return null;
+  }
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children}
+      </DialogTrigger>
+      <DialogContent className="max-w-6xl h-[80vh]">
+        <iframe 
+          src={appUrl}
+          className="w-full h-full border-0 rounded-md"
+          allow="accelerometer; camera; encrypted-media; fullscreen; geolocation; gyroscope; microphone; midi"
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const ProjectsList: React.FC<ProjectsListProps> = ({ projects, userRole }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -75,15 +107,16 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects, userRole }) => {
                 </TableCell>
                 <TableCell>
                   <div className="flex space-x-2">
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                      onClick={() => console.log('Open project:', project.id)}
-                    >
-                      <FolderOpen className="h-4 w-4 mr-1" />
-                      Open
-                    </Button>
+                    <ProjectIframeDialog appUrl={project.app_url}>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Maximize2 className="h-4 w-4 mr-1" />
+                        Open
+                      </Button>
+                    </ProjectIframeDialog>
                     <MembersDialog 
                       projectId={project.id}
                       currentUserRole={userRole}
