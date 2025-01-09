@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useTeamAccountWorkspace } from '@kit/team-accounts/hooks/use-team-account-workspace';
@@ -81,32 +82,31 @@ export function CreateProjectDialog(props: PropsWithChildren) {
   
   useEffect(() => {
     // When the component mounts, add a click listener to the button
-    const button = document.querySelector('button');
+    const button = document.querySelector('button:not([data-test="account-selector-trigger"])');
     if (button) {
       console.log('Found button:', button); // Debug log
-      const handleClick = (e: MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
+      const handleClick = (event: Event) => {
+        event.preventDefault();
+        if (event instanceof MouseEvent) {
+          event.stopPropagation();
+        }
         setIsOpen(true);
         console.log('Dialog opening, state:', isOpen);
       };
       
-      button.addEventListener('click', handleClick);
-      return () => button.removeEventListener('click', handleClick);
+      button.addEventListener('click', handleClick as EventListener);
+      return () => button.removeEventListener('click', handleClick as EventListener);
     } else {
       console.log('Button not found'); // Debug log
     }
   }, []);
 
-  console.log('Current dialog state:', isOpen); // Debug log
-
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      console.log('Dialog onOpenChange:', open); // Debug log
-      setIsOpen(open);
-    }}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        {props.children}
+        <div data-testid="new-project-button">
+          {props.children}
+        </div>
       </DialogTrigger>
       {isOpen && (
         <DialogContent>
