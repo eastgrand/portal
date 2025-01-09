@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { use } from 'react';
 import { headers } from 'next/headers';
@@ -34,8 +33,6 @@ async function fetchProjects() {
       `)
       .eq('project_members.user_id', '163f7fdd-c4c7-4ef9-9d4c-72f98ae4151e');
 
-    // Assuming the first project's role is the user's role
-    // You might want to adjust this based on your actual data structure
     const userRole = data?.[0]?.project_members?.[0]?.role as UserRole || 'member';
 
     return {
@@ -46,7 +43,7 @@ async function fetchProjects() {
     console.error('Error fetching projects:', error);
     return {
       projects: [],
-      userRole: 'member' as UserRole // default fallback
+      userRole: 'member' as UserRole
     };
   }
 }
@@ -74,8 +71,6 @@ export default function ProjectsPage() {
               or wait for an invitation!
             </EmptyStateText>
             <CreateProjectDialog
-              isOpen={false}
-              onOpenChange={() => {}}
               trigger={<EmptyStateButton>Create Project</EmptyStateButton>}
             />
           </EmptyState>
