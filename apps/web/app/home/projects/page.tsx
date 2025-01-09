@@ -17,7 +17,6 @@ import {
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import ProjectsList from '../(user)/_components/projects-list';
-import { NewProjectButton } from '../(user)/_components/new-project-button';
 
 type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
 
@@ -33,8 +32,6 @@ async function fetchProjects() {
       `)
       .eq('project_members.user_id', '163f7fdd-c4c7-4ef9-9d4c-72f98ae4151e');
 
-    // Assuming the first project's role is the user's role
-    // You might want to adjust this based on your actual data structure
     const userRole = data?.[0]?.project_members?.[0]?.role as UserRole || 'member';
 
     return {
@@ -45,7 +42,7 @@ async function fetchProjects() {
     console.error('Error fetching projects:', error);
     return {
       projects: [],
-      userRole: 'member' as UserRole // default fallback
+      userRole: 'member' as UserRole
     };
   }
 }
@@ -62,7 +59,9 @@ export default function ProjectsPage() {
 
       <PageBody>
         <div className="mb-4 flex justify-end">
-          <NewProjectButton />
+          <CreateProjectDialog>
+            <Button>New Project</Button>
+          </CreateProjectDialog>
         </div>
 
         <If condition={projects.length === 0}>
