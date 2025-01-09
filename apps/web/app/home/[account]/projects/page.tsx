@@ -58,9 +58,9 @@ export default function ProjectsPage() {
 
       <PageBody>
         <div className="mb-4 flex justify-end">
-         {/* <CreateProjectDialog>
+          <CreateProjectDialog>
             <EmptyStateButton>New Project</EmptyStateButton>
-          </CreateProjectDialog> */}
+          </CreateProjectDialog> 
         </div>
 
         <If condition={projects.length === 0}>
