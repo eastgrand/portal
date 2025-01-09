@@ -84,18 +84,25 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ isOpen, onOpenChange, trigger }: CreateProjectDialogProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onOpenChange(true);
+    return false;
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild onClick={(e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onOpenChange(true);
-      }}>
-        <div style={{ cursor: 'pointer' }}>
+    <Dialog modal open={isOpen} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <span 
+          onClick={handleClick}
+          onClickCapture={handleClick}
+          style={{ display: 'contents' }}
+        >
           {trigger}
-        </div>
+        </span>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Create Project</DialogTitle>
         </DialogHeader>

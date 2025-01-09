@@ -1,3 +1,5 @@
+'use client';
+
 import { use } from 'react';
 import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
@@ -20,6 +22,7 @@ import { CreateProjectDialog } from './_components/create-project-dialog';
 import { createProjectsService } from './_lib/server/projects/projects.service';
 import { getUserRole } from './_lib/server/users/users.service';
 import { NewProjectButton } from '../../(user)/_components/new-project-button';
+import { useState } from 'react';
 
 interface ProjectsPageProps {
  params: {
@@ -33,6 +36,14 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
  const userRole = use(getUserRole(client));
  const projects = use(service.getProjects(params.account, userRole ?? undefined));
  const canCreateProjects = userRole === 'super-admin';
+ const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+ const handleClick = (e: React.MouseEvent) => {
+   e.preventDefault();
+   e.stopPropagation();
+   setIsDialogOpen(true);
+   return false;
+ };
 
  return (
    <>
@@ -50,13 +61,23 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
                ? "You still have not created any projects. Create your first project now!"
                : "You don't have access to any projects yet."}
            </EmptyStateText>
-           {canCreateProjects && (
+           <div 
+             onClick={handleClick}
+             onClickCapture={handleClick}
+           >
              <CreateProjectDialog
-               trigger={<EmptyStateButton>Create Project</EmptyStateButton>}
-               isOpen={false}
-               onOpenChange={() => {}}
+               isOpen={isDialogOpen}
+               onOpenChange={setIsDialogOpen}
+               trigger={
+                 <EmptyStateButton 
+                   onClick={handleClick}
+                   onClickCapture={handleClick}
+                 >
+                   Create Project
+                 </EmptyStateButton>
+               }
              />
-           )}
+           </div>
          </EmptyState>
        </If>
        <div className={'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'}>
