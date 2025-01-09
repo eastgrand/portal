@@ -83,6 +83,7 @@ export function CreateProjectDialog(props: PropsWithChildren) {
     // When the component mounts, add a click listener to the button
     const button = document.querySelector('button');
     if (button) {
+      console.log('Found button:', button); // Debug log
       const handleClick = (e: MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -92,11 +93,18 @@ export function CreateProjectDialog(props: PropsWithChildren) {
       
       button.addEventListener('click', handleClick);
       return () => button.removeEventListener('click', handleClick);
+    } else {
+      console.log('Button not found'); // Debug log
     }
   }, []);
 
+  console.log('Current dialog state:', isOpen); // Debug log
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      console.log('Dialog onOpenChange:', open); // Debug log
+      setIsOpen(open);
+    }}>
       <DialogTrigger asChild>
         {props.children}
       </DialogTrigger>
