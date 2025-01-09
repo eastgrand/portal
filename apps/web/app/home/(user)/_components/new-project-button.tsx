@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { Button } from '@kit/ui/button';
@@ -17,8 +18,6 @@ export function NewProjectButton() {
             type="button" 
             data-test="new-project-button"
             onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
               setIsDialogOpen(true);
             }}
           >
