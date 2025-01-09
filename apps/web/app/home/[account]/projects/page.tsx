@@ -88,7 +88,7 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
               ? "Create your first project now!"
               : "You don't have access to any projects yet."}
           </EmptyStateText>
-          <Link href="?dialog=new-project" scroll={false}>
+          <Link href={`/home/${params.account}/projects/new`} scroll={false}>
             <EmptyStateButton>
               Create Project
             </EmptyStateButton>
