@@ -76,8 +76,8 @@ const EmbedProjectDialog: React.FC<EmbedProjectDialogProps> = ({ appUrl, childre
         
         <div className="mt-4">
           <div className="relative">
-            <pre className="bg-slate-950 text-slate-50 p-4 rounded-lg overflow-x-auto">
-              <code>{iframeCode}</code>
+            <pre className="bg-slate-950 text-slate-50 p-4 rounded-lg overflow-x-auto whitespace-pre-wrap break-all">
+              <code className="text-sm">{iframeCode}</code>
             </pre>
           </div>
           
