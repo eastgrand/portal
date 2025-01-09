@@ -88,17 +88,11 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
               ? "Create your first project now!"
               : "You don't have access to any projects yet."}
           </EmptyStateText>
-          <div data-test="new-project-button">
-            <CreateProjectDialog
-              isOpen={isDialogOpen}
-              onOpenChange={setIsDialogOpen}
-              trigger={
-                <EmptyStateButton>
-                  Create Project
-                </EmptyStateButton>
-              }
-            />
-          </div>
+          <Link href="?dialog=new-project" scroll={false}>
+            <EmptyStateButton>
+              Create Project
+            </EmptyStateButton>
+          </Link>
         </EmptyState>
       </If>
       {/* Rest of your component */}
