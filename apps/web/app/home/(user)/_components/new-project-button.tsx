@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-empty-function */
 'use client';
 
 import { Button } from '@kit/ui/button';
@@ -9,7 +9,7 @@ export function NewProjectButton() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
-    <div>
+    <div onClick={() => {}}>
       <CreateProjectDialog 
         isOpen={isDialogOpen} 
         onOpenChange={setIsDialogOpen}
@@ -17,9 +17,7 @@ export function NewProjectButton() {
           <Button 
             type="button" 
             data-test="new-project-button"
-            onClick={(e) => {
-              setIsDialogOpen(true);
-            }}
+            onClick={() => setIsDialogOpen(true)}
           >
             New Project
           </Button>
