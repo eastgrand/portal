@@ -19,6 +19,7 @@ import { PageBody, PageHeader } from '@kit/ui/page';
 import { CreateProjectDialog } from './_components/create-project-dialog';
 import { createProjectsService } from './_lib/server/projects/projects.service';
 import { getUserRole } from './_lib/server/users/users.service';
+import { NewProjectButton } from '../../(user)/_components/new-project-button';
 
 interface ProjectsPageProps {
  params: {
@@ -37,11 +38,7 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
    <>
      <PageHeader title="Projects" description={<AppBreadcrumbs />}>
        {canCreateProjects && (
-         <CreateProjectDialog 
-           trigger={<Button>New Project</Button>}
-           isOpen={false} 
-           onOpenChange={() => {}}
-         />
+         <NewProjectButton />
        )}
      </PageHeader>
      <PageBody>
