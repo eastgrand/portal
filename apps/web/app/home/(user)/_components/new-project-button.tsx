@@ -8,25 +8,24 @@ export function NewProjectButton() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
-    <CreateProjectDialog 
-      isOpen={isDialogOpen} 
-      onOpenChange={setIsDialogOpen}
-      trigger={
-        <Button 
-          type="button" 
-          data-test="new-project-button"
-          onClick={(e) => {
-            // We need this to prevent the click from bubbling up 
-            // and being treated as a navigation event
-            if (e.target === e.currentTarget) {
+    <div>
+      <CreateProjectDialog 
+        isOpen={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        trigger={
+          <Button 
+            type="button" 
+            data-test="new-project-button"
+            onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               setIsDialogOpen(true);
-            }
-          }}
-        >
-          New Project
-        </Button>
-      }
-    />
+            }}
+          >
+            New Project
+          </Button>
+        }
+      />
+    </div>
   );
 }
