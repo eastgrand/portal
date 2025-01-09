@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { use } from 'react';
 import { headers } from 'next/headers';
-import Link from 'next/link';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
 import { Button } from '@kit/ui/button';
 import { If } from '@kit/ui/if';
@@ -59,9 +58,9 @@ export default function ProjectsPage() {
 
       <PageBody>
         <div className="mb-4 flex justify-end">
-          <CreateProjectDialog>
-            <Button>New Project</Button>
-          </CreateProjectDialog>
+         {/* <CreateProjectDialog>
+            <EmptyStateButton>New Project</EmptyStateButton>
+          </CreateProjectDialog> */}
         </div>
 
         <If condition={projects.length === 0}>
@@ -72,8 +71,8 @@ export default function ProjectsPage() {
               or wait for an invitation!
             </EmptyStateText>
             <CreateProjectDialog>
-             <EmptyStateButton>Create Project</EmptyStateButton>
-           </CreateProjectDialog>
+              <EmptyStateButton>Create Project</EmptyStateButton>
+            </CreateProjectDialog>
           </EmptyState>
         </If>
 
