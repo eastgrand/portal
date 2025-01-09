@@ -1,7 +1,7 @@
 'use client';
 
 import { useTeamAccountWorkspace } from '@kit/team-accounts/hooks/use-team-account-workspace';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -79,33 +79,38 @@ function CreateProjectDialogForm(props: {
 export function CreateProjectDialog(props: PropsWithChildren) {
   const [isOpen, setIsOpen] = useState(false);
   
+  useEffect(() => {
+    // When the component mounts, add a click listener to the button
+    const button = document.querySelector('button');
+    if (button) {
+      const handleClick = (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsOpen(true);
+        console.log('Dialog opening, state:', isOpen);
+      };
+      
+      button.addEventListener('click', handleClick);
+      return () => button.removeEventListener('click', handleClick);
+    }
+  }, []);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <div 
-          role="button"
-          style={{ cursor: 'pointer' }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsOpen(true);
-          }}
-        >
-          {props.children}
-        </div>
+        {props.children}
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create Project</DialogTitle>
-          <DialogDescription>
-            Create a new project in your workspace.
-          </DialogDescription>
-        </DialogHeader>
-        <CreateProjectDialogForm 
-          onCancel={() => setIsOpen(false)}
-          onCreateProject={() => setIsOpen(false)}
-        />
-      </DialogContent>
+      {isOpen && (
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Project</DialogTitle>
+          </DialogHeader>
+          <CreateProjectDialogForm 
+            onCancel={() => setIsOpen(false)}
+            onCreateProject={() => setIsOpen(false)}
+          />
+        </DialogContent>
+      )}
     </Dialog>
   );
 }
