@@ -63,21 +63,6 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
   const canCreateProjects = userRole === 'super-admin';
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  useEffect(() => {
-    // Prevent default navigation behavior
-    const handleClick = (e: MouseEvent) => {
-      if (e.target instanceof HTMLElement && 
-          e.target.closest('[data-test="new-project-button"]')) {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDialogOpen(true);
-      }
-    };
-
-    document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
-  }, []);
-
   return (
     <PageBody>
       <If condition={projects.length === 0}>
@@ -88,14 +73,20 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
               ? "Create your first project now!"
               : "You don't have access to any projects yet."}
           </EmptyStateText>
-          <Link href={`/home/${params.account}/projects/new`} scroll={false}>
-            <EmptyStateButton>
-              Create Project
-            </EmptyStateButton>
-          </Link>
+          <CreateProjectDialog
+            isOpen={isDialogOpen}
+            onOpenChange={setIsDialogOpen}
+            trigger={
+              <EmptyStateButton onClick={(e) => {
+                e.preventDefault();
+                setIsDialogOpen(true);
+              }}>
+                Create Project
+              </EmptyStateButton>
+            }
+          />
         </EmptyState>
       </If>
-      {/* Rest of your component */}
     </PageBody>
   );
 }
