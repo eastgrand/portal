@@ -8,7 +8,7 @@ export function NewProjectButton() {
     <CreateProjectDialog>
       <div style={{ cursor: 'pointer' }}>
         <Button type="button">
-          New Project
+          New
         </Button>
       </div>
     </CreateProjectDialog>
