@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/require-await */
 'use client';
 
 import { useTeamAccountWorkspace } from '@kit/team-accounts/hooks/use-team-account-workspace';
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -13,19 +14,20 @@ import {
 import { Button } from '@kit/ui/button';
 import { createProjectAction } from '../_lib/server/server-actions';
 
-export type CreateProjectDialogProps = {
+type CreateProjectDialogProps = {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
   trigger: React.ReactNode;
 };
 
-export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function CreateProjectDialog({ isOpen, onOpenChange, trigger }: CreateProjectDialogProps) {
   const [pending, startTransition] = useTransition();
   const {
     account: { id: accountId },
   } = useTeamAccountWorkspace();
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
@@ -38,17 +40,21 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
         </DialogHeader>
         <form
           className="flex flex-col space-y-4"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             const name = formData.get('name') as string;
             
             startTransition(async () => {
-              await createProjectAction({
-                name,
-                accountId,
-              });
-              setIsOpen(false);
+              try {
+                await createProjectAction({
+                  name,
+                  accountId,
+                });
+                onOpenChange(false);
+              } catch (error) {
+                console.error('Failed to create project:', error);
+              }
             });
           }}
         >
@@ -75,7 +81,7 @@ export function CreateProjectDialog({ trigger }: CreateProjectDialogProps) {
             <Button 
               variant="outline" 
               type="button" 
-              onClick={() => setIsOpen(false)}
+              onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>

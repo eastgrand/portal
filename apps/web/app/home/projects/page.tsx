@@ -71,8 +71,9 @@ export default function ProjectsPage() {
               or wait for an invitation!
             </EmptyStateText>
             <CreateProjectDialog
-              trigger={<EmptyStateButton>Create Project</EmptyStateButton>}
-            />
+              trigger={<EmptyStateButton>Create Project</EmptyStateButton>} isOpen={false} onOpenChange={function (open: boolean): void {
+                throw new Error('Function not implemented.');
+              } }            />
           </EmptyState>
         </If>
 
