@@ -77,48 +77,29 @@ function CreateProjectDialogForm(props: {
   );
 }
 
-export function CreateProjectDialog(props: PropsWithChildren) {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  useEffect(() => {
-    // When the component mounts, add a click listener to the button
-    const button = document.querySelector('button[data-test="new-project-button"]');
-    if (button) {
-      console.log('Found button:', button); // Debug log
-      const handleClick = (event: Event) => {
-        event.preventDefault();
-        if (event instanceof MouseEvent) {
-          event.stopPropagation();
-        }
-        setIsOpen(true);
-        console.log('Dialog opening, state:', isOpen);
-      };
-      
-      button.addEventListener('click', handleClick as EventListener);
-      return () => button.removeEventListener('click', handleClick as EventListener);
-    } else {
-      console.log('Button not found'); // Debug log
-    }
-  }, []);
+interface CreateProjectDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  trigger: React.ReactNode;
+}
 
+export function CreateProjectDialog({ isOpen, onOpenChange, trigger }: CreateProjectDialogProps) {
+  console.log('Dialog render with isOpen:', isOpen);
+  
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <div>
-          {props.children}
-        </div>
+        {trigger}
       </DialogTrigger>
-      {isOpen && (
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Project</DialogTitle>
-          </DialogHeader>
-          <CreateProjectDialogForm 
-            onCancel={() => setIsOpen(false)}
-            onCreateProject={() => setIsOpen(false)}
-          />
-        </DialogContent>
-      )}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Project</DialogTitle>
+        </DialogHeader>
+        <CreateProjectDialogForm 
+          onCancel={() => onOpenChange(false)}
+          onCreateProject={() => onOpenChange(false)}
+        />
+      </DialogContent>
     </Dialog>
   );
 }

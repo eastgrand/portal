@@ -72,9 +72,11 @@ export default function ProjectsPage() {
               You are not a member of any projects yet. Create your first project
               or wait for an invitation!
             </EmptyStateText>
-            <CreateProjectDialog>
-              <EmptyStateButton>Create Project</EmptyStateButton>
-            </CreateProjectDialog>
+            <CreateProjectDialog
+              isOpen={false}
+              onOpenChange={() => {}}
+              trigger={<EmptyStateButton>Create Project</EmptyStateButton>}
+            />
           </EmptyState>
         </If>
 

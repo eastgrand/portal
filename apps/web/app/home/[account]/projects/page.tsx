@@ -37,11 +37,11 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
    <>
      <PageHeader title="Projects" description={<AppBreadcrumbs />}>
        {canCreateProjects && (
-         <Link href={`/home/${params.account}/projects/new`}>
-           <CreateProjectDialog>
-             <Button>New Project</Button>
-           </CreateProjectDialog>
-         </Link>
+         <CreateProjectDialog 
+           trigger={<Button>New Project</Button>}
+           isOpen={false} 
+           onOpenChange={() => {}}
+         />
        )}
      </PageHeader>
      <PageBody>
@@ -54,9 +54,11 @@ export default function ProjectsPage({ params }: ProjectsPageProps) {
                : "You don't have access to any projects yet."}
            </EmptyStateText>
            {canCreateProjects && (
-             <CreateProjectDialog>
-               <EmptyStateButton>Create Project</EmptyStateButton>
-             </CreateProjectDialog>
+             <CreateProjectDialog
+               trigger={<EmptyStateButton>Create Project</EmptyStateButton>}
+               isOpen={false}
+               onOpenChange={() => {}}
+             />
            )}
          </EmptyState>
        </If>

@@ -2,27 +2,30 @@
 
 import { Button } from '@kit/ui/button';
 import { CreateProjectDialog } from '../../[account]/projects/_components/create-project-dialog';
-import { useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export function NewProjectButton() {
-  const router = useRouter();
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    router.push('#');
-    console.log('Click intercepted');
-  }, [router]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   return (
-    <div onClickCapture={handleClick}>
-      <CreateProjectDialog>
-        <div style={{ cursor: 'pointer' }} onClick={(e) => e.preventDefault()}>
-          <Button type="button" data-test="new-project-button">
+    <div>
+      <CreateProjectDialog 
+        isOpen={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        trigger={
+          <Button 
+            type="button" 
+            data-test="new-project-button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDialogOpen(true);
+            }}
+          >
             New Project
           </Button>
-        </div>
-      </CreateProjectDialog>
+        }
+      />
     </div>
   );
 }
