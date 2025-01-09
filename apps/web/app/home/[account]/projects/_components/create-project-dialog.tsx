@@ -84,12 +84,16 @@ interface CreateProjectDialogProps {
 }
 
 export function CreateProjectDialog({ isOpen, onOpenChange, trigger }: CreateProjectDialogProps) {
-  console.log('Dialog render with isOpen:', isOpen);
-  
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {trigger}
+      <DialogTrigger asChild onClick={(e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onOpenChange(true);
+      }}>
+        <div style={{ cursor: 'pointer' }}>
+          {trigger}
+        </div>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
