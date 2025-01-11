@@ -70,33 +70,33 @@ export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
   return (
-    <>
+    <div className="flex flex-col flex-1 w-full">
       <HomeLayoutPageHeader
         title={<Trans i18nKey={'projects:projects'} />}
         description={<Trans i18nKey={'projects:projectsDescription'} />}
       />
 
-      <PageBody className="max-w-full px-4">
-        <div className="mb-4 flex justify-end w-full">
+      <PageBody className="flex-1 w-full">
+        <div className="flex flex-col gap-4 w-full">
           <div className="bg-white rounded-lg p-4 w-full">
             {/* Your button content */}
           </div>
+
+          <If condition={projects.length === 0}>
+            <div className="bg-white rounded-lg p-4 w-full">
+              <EmptyState>
+                {/* ... */}
+              </EmptyState>
+            </div>
+          </If>
+
+          <If condition={projects.length > 0}>
+            <div className="bg-white rounded-lg p-4 w-full">
+              <ProjectsList projects={projects} userRole={userRole} />
+            </div>
+          </If>
         </div>
-
-        <If condition={projects.length === 0}>
-          <div className="bg-white rounded-lg p-4 w-full">
-            <EmptyState>
-              {/* ... */}
-            </EmptyState>
-          </div>
-        </If>
-
-        <If condition={projects.length > 0}>
-          <div className="bg-white rounded-lg p-4 w-full">
-            <ProjectsList projects={projects} userRole={userRole} />
-          </div>
-        </If>
       </PageBody>
-    </>
+    </div>
   );
 }
