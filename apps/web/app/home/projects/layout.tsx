@@ -40,24 +40,23 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen flex flex-col">
-          <header className="h-16 bg-white border-b px-4 flex items-center">
+          <header className="h-16 bg-white border-b px-4 flex items-center relative z-50">
             <AppLogo />
             <div className="flex-1" />
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
           <Page style={'sidebar'} className="flex-1">
-            <PageNavigation>
-              <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
-            </PageNavigation>
+  <PageNavigation>
+    <div className="pt-0">
+      <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
+    </div>
+  </PageNavigation>
 
-            <main className="flex-1 bg-gray-50">
-              <PageMobileNavigation className="flex items-center justify-between md:hidden">
-                <MobileNavigation workspace={workspace} />
-              </PageMobileNavigation>
-              {children}
-            </main>
-          </Page>
+  <main className="flex-1 bg-gray-50" style={{ paddingLeft: sidebarMinimized ? '80px' : '280px' }}>
+    {children}
+  </main>
+</Page>
         </div>
       </SidebarProvider>
     </UserWorkspaceContextProvider>

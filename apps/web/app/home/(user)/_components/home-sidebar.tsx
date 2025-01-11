@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { If } from '@kit/ui/if';
 import {
   Sidebar,
@@ -9,7 +10,7 @@ import {
 import { cn } from '@kit/ui/utils';
 
 import { AppLogo } from '~/components/app-logo';
-import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
+//import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
 import featuresFlagConfig from '~/config/feature-flags.config';
 import { personalAccountNavigationConfig } from '~/config/personal-account-navigation.config';
 import { UserNotifications } from '~/home/(user)/_components/user-notifications';
@@ -55,7 +56,7 @@ export function HomeSidebar(props: HomeSidebarProps) {
       </SidebarContent>
 
       <SidebarFooter>
-        <ProfileAccountDropdownContainer user={user} account={workspace} />
+        {/*<ProfileAccountDropdownContainer user={user} account={workspace} />*/}
       </SidebarFooter>
     </Sidebar>
   );
