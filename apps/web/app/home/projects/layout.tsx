@@ -39,29 +39,29 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
   return (
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
-        <Page style={'sidebar'}>
-          {/* Add full-width header */}
-          <div className="w-full bg-gray-100 border-b">
-            <div className="h-16 px-4 flex items-center">
-              {/* Your header content */}
-            </div>
-          </div>
+        <div className="min-h-screen flex flex-col">
+          {/* Full-width header */}
+          <header className="w-full bg-white border-b h-16 flex items-center px-4">
+            <AppLogo />
+          </header>
 
-          <div className="flex">
+          {/* Main content area */}
+          <div className="flex flex-1">
             <PageNavigation>
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </PageNavigation>
 
-            {/* Add background color to content area */}
-            <div className="flex-1 bg-gray-50">
-              <PageMobileNavigation className={'flex items-center justify-between'}>
+            <main className="flex-1 bg-gray-50">
+              <PageMobileNavigation className="flex items-center justify-between md:hidden">
                 <MobileNavigation workspace={workspace} />
               </PageMobileNavigation>
 
-              {children}
-            </div>
+              <div className="bg-white">
+                {children}
+              </div>
+            </main>
           </div>
-        </Page>
+        </div>
       </SidebarProvider>
     </UserWorkspaceContextProvider>
   );
