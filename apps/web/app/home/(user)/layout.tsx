@@ -41,15 +41,19 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
         <Page style={'sidebar'}>
-          <PageNavigation>
-            <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
-          </PageNavigation>
+          <div className="flex w-full">
+            <PageNavigation>
+              <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
+            </PageNavigation>
 
-          <PageMobileNavigation className={'flex items-center justify-between'}>
-            <MobileNavigation workspace={workspace} />
-          </PageMobileNavigation>
+            <div className="flex-1 min-w-0 w-full">
+              <PageMobileNavigation className={'flex items-center justify-between'}>
+                <MobileNavigation workspace={workspace} />
+              </PageMobileNavigation>
 
-          {children}
+              {children}
+            </div>
+          </div>
         </Page>
       </SidebarProvider>
     </UserWorkspaceContextProvider>
