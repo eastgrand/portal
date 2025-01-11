@@ -35,7 +35,7 @@ const pathsConfig = PathsSchema.parse({
     passwordUpdate: '/update-password',
   },
   app: {
-    home: '/home',
+    home: '/home/projects',
     projects: '/home/[account]/projects',
     personalProjects: '/home/projects',
     personalAccountSettings: '/home/settings',
