@@ -56,9 +56,9 @@ export default function ProjectsPage() {
         description={<Trans i18nKey={'projects:projectsDescription'} />}
       />
 
-<PageBody>
-  <div className="mb-4 flex justify-end">
-    <div className="bg-white rounded-lg p-4">
+<PageBody className="max-w-none">
+  <div className="mb-4 flex justify-end w-full">
+    <div className="bg-white rounded-lg p-4 w-full">
       {/* Your button content */}
     </div>
   </div>
