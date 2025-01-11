@@ -53,9 +53,11 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     </div>
   </PageNavigation>
 
-  <main className="flex-1 bg-gray-50" style={{ paddingLeft: sidebarMinimized ? '80px' : '280px' }}>
+  <main className="flex-1 bg-gray-50 w-full" style={{ paddingLeft: sidebarMinimized ? '80px' : '280px' }}>
+  <div className="max-w-full">
     {children}
-  </main>
+  </div>
+</main>
 </Page>
         </div>
       </SidebarProvider>
