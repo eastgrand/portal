@@ -14,7 +14,7 @@ import {
 } from '@kit/ui/empty-state';
 
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
-import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
+//import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import ProjectsList from '../(user)/_components/projects-list';
 
 type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
@@ -56,30 +56,27 @@ export default function ProjectsPage() {
         description={<Trans i18nKey={'projects:projectsDescription'} />}
       />
 
-      <PageBody>
-        <div className="mb-4 flex justify-end">
-         {/* <CreateProjectDialog>
-            <EmptyStateButton>New Project</EmptyStateButton>
-          </CreateProjectDialog> */}
-        </div>
+<PageBody>
+  <div className="mb-4 flex justify-end">
+    <div className="bg-white rounded-lg p-4">
+      {/* Your button content */}
+    </div>
+  </div>
 
-        <If condition={projects.length === 0}>
-          <EmptyState>
-            <EmptyStateHeading>No projects found</EmptyStateHeading>
-            <EmptyStateText>
-              You are not a member of any projects yet. Create your first project
-              or wait for an invitation!
-            </EmptyStateText>
-            <CreateProjectDialog>
-              <EmptyStateButton>Create Project</EmptyStateButton>
-            </CreateProjectDialog>
-          </EmptyState>
-        </If>
+  <If condition={projects.length === 0}>
+    <div className="bg-white rounded-lg p-4">
+      <EmptyState>
+        {/* ... */}
+      </EmptyState>
+    </div>
+  </If>
 
-        <If condition={projects.length > 0}>
-          <ProjectsList projects={projects} userRole={userRole} />
-        </If>
-      </PageBody>
+  <If condition={projects.length > 0}>
+    <div className="bg-white rounded-lg p-4">
+      <ProjectsList projects={projects} userRole={userRole} />
+    </div>
+  </If>
+</PageBody>
     </>
   );
 }
