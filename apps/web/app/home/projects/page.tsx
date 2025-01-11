@@ -17,7 +17,20 @@ import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 //import { CreateProjectDialog } from '../[account]/projects/_components/create-project-dialog';
 import ProjectsList from '../(user)/_components/projects-list';
 
-type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
+type UserRole = 'owner' | 'admin' | 'member';
+
+interface Project {
+  id: string;
+  name: string;
+  account_id: string;
+  created_at: string;
+  updated_at: string;
+  description: string | null;
+  project_members: {
+    user_id: string;
+    role: 'owner' | 'admin' | 'member';
+  }[];
+}
 
 async function fetchProjects() {
   const client = getSupabaseServerComponentClient();
@@ -26,11 +39,18 @@ async function fetchProjects() {
     const { data, error } = await client
       .from('projects')
       .select(`
-        *,
+        id,
+        name,
+        account_id,
+        created_at,
+        updated_at,
+        description,
+        app_url,
         project_members!inner(user_id, role)
       `)
       .eq('project_members.user_id', '163f7fdd-c4c7-4ef9-9d4c-72f98ae4151e');
 
+    console.log('Query result:', { data, error });
     const userRole = data?.[0]?.project_members?.[0]?.role as UserRole || 'member';
 
     return {
@@ -56,27 +76,27 @@ export default function ProjectsPage() {
         description={<Trans i18nKey={'projects:projectsDescription'} />}
       />
 
-<PageBody className="max-w-none">
-  <div className="mb-4 flex justify-end w-full">
-    <div className="bg-white rounded-lg p-4 w-full">
-      {/* Your button content */}
-    </div>
-  </div>
+      <PageBody className="max-w-full px-4">
+        <div className="mb-4 flex justify-end w-full">
+          <div className="bg-white rounded-lg p-4 w-full">
+            {/* Your button content */}
+          </div>
+        </div>
 
-  <If condition={projects.length === 0}>
-    <div className="bg-white rounded-lg p-4">
-      <EmptyState>
-        {/* ... */}
-      </EmptyState>
-    </div>
-  </If>
+        <If condition={projects.length === 0}>
+          <div className="bg-white rounded-lg p-4 w-full">
+            <EmptyState>
+              {/* ... */}
+            </EmptyState>
+          </div>
+        </If>
 
-  <If condition={projects.length > 0}>
-    <div className="bg-white rounded-lg p-4">
-      <ProjectsList projects={projects} userRole={userRole} />
-    </div>
-  </If>
-</PageBody>
+        <If condition={projects.length > 0}>
+          <div className="bg-white rounded-lg p-4 w-full">
+            <ProjectsList projects={projects} userRole={userRole} />
+          </div>
+        </If>
+      </PageBody>
     </>
   );
 }

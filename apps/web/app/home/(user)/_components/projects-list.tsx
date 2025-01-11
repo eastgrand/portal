@@ -26,11 +26,18 @@ import {
 interface Project {
   id: string;
   name: string;
+  account_id: string;
   created_at: string;
+  updated_at: string;
+  description: string | null;
   app_url: string;
+  project_members: {
+    user_id: string;
+    role: 'owner' | 'admin' | 'member';
+  }[];
 }
 
-type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
+type UserRole = 'owner' | 'admin' | 'member';
 
 interface ProjectsListProps {
   projects: Project[];
@@ -139,7 +146,7 @@ const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, child
   );
 };
 
-const ProjectsList: React.FC<ProjectsListProps> = ({ projects, userRole }) => {
+export default function ProjectsList({ projects, userRole }: ProjectsListProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Filter projects based on search query
@@ -229,6 +236,4 @@ const ProjectsList: React.FC<ProjectsListProps> = ({ projects, userRole }) => {
       </div>
     </div>
   );
-};
-
-export default ProjectsList;
+}
