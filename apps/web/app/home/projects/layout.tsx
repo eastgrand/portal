@@ -24,25 +24,19 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen flex flex-col">
-          <header className="h-16 bg-white border-b w-full flex items-center px-4 z-50">
+          <header className="h-16 bg-white border-b w-full flex items-center px-4">
             <AppLogo />
             <div className="flex-1" />
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
-          <div className="flex flex-1 relative">
-            <PageNavigation>
-              <aside className="fixed top-16 bottom-0 left-0 bg-white border-r"
-                     style={{ width: sidebarMinimized ? '80px' : '280px' }}>
-                <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
-              </aside>
-            </PageNavigation>
-
-            <PageMobileNavigation className="flex items-center justify-between">
-              <MobileNavigation workspace={workspace} />
-            </PageMobileNavigation>
+          <div className="flex flex-1">
+            <aside className="fixed top-16 bottom-0 left-0 w-[280px] bg-white border-r transition-all duration-200"
+                   style={{ width: sidebarMinimized ? '80px' : '280px' }}>
+              <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
+            </aside>
             
-            <main className="grow bg-gray-50 min-h-full" 
+            <main className="flex-1 bg-gray-50 transition-all duration-200" 
                   style={{ marginLeft: sidebarMinimized ? '80px' : '280px' }}>
               {children}
             </main>
@@ -62,24 +56,12 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
           <HomeMenuNavigation workspace={workspace} />
         </PageNavigation>
         <PageMobileNavigation className="flex items-center justify-between">
-          <MobileNavigation workspace={workspace} />
+          <AppLogo />
+          <HomeMobileNavigation workspace={workspace} />
         </PageMobileNavigation>
         {children}
       </Page>
     </UserWorkspaceContextProvider>
-  );
-}
-
-function MobileNavigation({
-  workspace,
-}: {
-  workspace: Awaited<ReturnType<typeof loadUserWorkspace>>;
-}) {
-  return (
-    <>
-      <AppLogo />
-      <HomeMobileNavigation workspace={workspace} />
-    </>
   );
 }
 

@@ -70,15 +70,15 @@ export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex-1">
       <HomeLayoutPageHeader
         title={<Trans i18nKey={'projects:projects'} />}
         description={<Trans i18nKey={'projects:projectsDescription'} />}
       />
 
-<PageBody className="w-full max-w-none px-8">
-        <div className="flex flex-col gap-4">
-          <div className="bg-white rounded-lg p-4 w-full">
+      <PageBody>
+        <div className="grid gap-4">
+          <div className="bg-white rounded-lg p-4">
             {/* Your button content */}
           </div>
 
