@@ -162,7 +162,7 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       <Input
         placeholder="Search projects..."
         value={searchQuery}
@@ -170,64 +170,66 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
         className="max-w-sm"
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Project Name</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="w-[300px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredProjects.map((project) => (
-            <TableRow key={project.id}>
-              <TableCell className="font-medium">
-                {project.name}
-              </TableCell>
-              <TableCell>
-                {formatDate(project.created_at)}
-              </TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <ProjectIframeDialog appUrl={project.app_url}>
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      <Maximize2 className="h-4 w-4 mr-1" />
-                      Open
-                    </Button>
-                  </ProjectIframeDialog>
-                  <MembersDialog 
-                    projectId={project.id}
-                    currentUserRole={userRole}
-                  >
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Users className="h-4 w-4 mr-1" />
-                      Members
-                    </Button>
-                  </MembersDialog>
-                  <EmbedProjectDialog appUrl={project.app_url}>
-                    <Button 
-                      variant="default"
-                      size="sm"
-                      className="bg-orange-500 hover:bg-orange-600"
-                    >
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Embed
-                    </Button>
-                  </EmbedProjectDialog>
-                </div>
-              </TableCell>
+      <div className="w-full">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Project Name</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="w-[300px]">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filteredProjects.map((project) => (
+              <TableRow key={project.id}>
+                <TableCell className="font-medium">
+                  {project.name}
+                </TableCell>
+                <TableCell>
+                  {formatDate(project.created_at)}
+                </TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <ProjectIframeDialog appUrl={project.app_url}>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Maximize2 className="h-4 w-4 mr-1" />
+                        Open
+                      </Button>
+                    </ProjectIframeDialog>
+                    <MembersDialog 
+                      projectId={project.id}
+                      currentUserRole={userRole}
+                    >
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Members
+                      </Button>
+                    </MembersDialog>
+                    <EmbedProjectDialog appUrl={project.app_url}>
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className="bg-orange-500 hover:bg-orange-600"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-1" />
+                        Embed
+                      </Button>
+                    </EmbedProjectDialog>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
