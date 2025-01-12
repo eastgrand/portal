@@ -70,8 +70,8 @@ export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
   return (
-    <div className="flex flex-col flex-1 w-full">
-    <div className="px-6 py-4">
+    <div className="flex flex-col min-h-full w-full">
+    <header className="px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex flex-col">
           <div className="h-6">
@@ -82,10 +82,10 @@ export default function ProjectsPage() {
           </h1>
         </div>
       </div>
-    </div>
+    </header>
 
-    <div className="bg-white w-full">
-      <div className="px-6">
+    <div className="flex-1 bg-white">
+      <div className="w-full">
         <ProjectsList projects={projects} userRole={userRole} />
       </div>
     </div>
