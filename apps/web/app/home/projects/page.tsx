@@ -77,8 +77,8 @@ export default function ProjectsPage() {
           description={<Trans i18nKey={'projects:projectsDescription'} />}
         />
 
-        <PageBody>
-          <div className="grid gap-4">
+        <PageBody className="-ml-4">
+          <div className="grid gap-4 px-4">
             <div className="bg-white rounded-lg shadow-sm p-4">
               {/* Your button content */}
             </div>
