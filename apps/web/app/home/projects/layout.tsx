@@ -23,22 +23,23 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
   return (
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
-        <div className="min-h-screen flex flex-col w-full">
+        <div className="min-h-screen">
           <header className="h-16 bg-white border-b fixed top-0 left-0 right-0 z-50 flex items-center px-4">
             <AppLogo />
             <div className="flex-1" />
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
-          <div className="flex flex-1">
-            <aside>
+          <div className="flex">
+            <aside className="fixed top-16 h-[calc(100vh-4rem)] bg-white">
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main className="flex-1 bg-gray-50 min-h-screen border-l" 
+            <main className="min-h-[calc(100vh-4rem)] bg-gray-50"
                   style={{ 
                     marginLeft: sidebarMinimized ? '80px' : '280px',
-                    marginTop: '64px'
+                    marginTop: '64px',
+                    width: `calc(100% - ${sidebarMinimized ? '80px' : '280px'})`
                   }}>
               {children}
             </main>

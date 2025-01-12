@@ -87,14 +87,6 @@ export default function ProjectsPage() {
           <div className="grid gap-6">
             <div className="bg-white rounded-lg shadow-sm">
               <div className="space-y-6 p-6">
-                <div className="flex items-center justify-between">
-                  <input 
-                    type="text" 
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 max-w-sm" 
-                    placeholder="Search projects..." 
-                  />
-                </div>
-                
                 <div className="rounded-md border">
                   <div className="relative w-full overflow-auto">
                     <ProjectsList projects={projects} userRole={userRole} />
