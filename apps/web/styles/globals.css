@@ -139,20 +139,31 @@ Optimize dropdowns for mobile
   }
 }
 
-[data-collapsible] {
-  padding-right: 0 !important;
-  padding-left: 0 !important;
+/* Target the spacer div that's creating the gap */
+[data-collapsible] > div:first-child {
+  width: 0 !important;
+  display: none !important;
 }
 
-.group.peer > div:first-child {
-  display: none;
+/* Remove any extra spacing around the fixed sidebar */
+[data-collapsible] > div.fixed {
+  margin: 0 !important;
 }
 
-[data-collapsible] > div:last-child {
-  padding: 0 !important;
-}
-
+/* Ensure the content aligns properly with sidebar */
 [data-sidebar="sidebar"] {
   margin: 0 !important;
-  border-right-width: 1px !important;
+  border-right: 1px solid var(--border-color) !important;
+  width: 100% !important;
+}
+
+/* Remove any padding from the wrapper */
+.group.peer {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ensure proper layering */
+.group.peer > div.fixed {
+  width: var(--sidebar-width) !important;
 }
