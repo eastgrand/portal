@@ -138,30 +138,3 @@ Optimize dropdowns for mobile
     transform: translateY(1rem);
   }
 }
-
-/* Remove the transparent div causing the gap */
-[data-collapsible] {
-  background-color: rgb(249 250 251) !important;
-}
-
-/* Remove the extra padding around fixed sidebar */
-[data-collapsible] > div.fixed {
-  padding-right: 0 !important;
-}
-
-/* Make the content background extend full width */
-[data-sidebar="sidebar"] {
-  border-right: 1px solid var(--border-color) !important;
-  margin-right: 0 !important;
-}
-
-/* Reset to default padding */
-.flex.w-full.flex-1.flex-col {
-  padding: 0 16px;
-}
-
-/* Ensure proper stacking */
-.flex.flex-1 > main {
-  position: relative;
-  padding-left: 16px;
-}
