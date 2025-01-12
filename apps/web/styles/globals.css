@@ -139,11 +139,11 @@ Optimize dropdowns for mobile
   }
 }
 
-.sidebarContainer [data-collapsible] {
+[data-collapsible] {
   padding-right: 0 !important;
 }
 
-.sidebarContainer [data-sidebar="sidebar"] {
+[data-sidebar="sidebar"] {
   border-right-width: 1px;
   margin-right: 0 !important;
 }
