@@ -138,3 +138,8 @@ Optimize dropdowns for mobile
     transform: translateY(1rem);
   }
 }
+
+[data-collapsible] > div:first-child {
+  background-color: rgb(249 250 251) !important;
+  border-right: 1px solid rgb(229, 231, 235);
+}
