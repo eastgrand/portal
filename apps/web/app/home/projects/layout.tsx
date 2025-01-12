@@ -1,4 +1,3 @@
-// layout.tsx
 import { use } from 'react';
 import { cookies } from 'next/headers';
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
@@ -25,25 +24,21 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen flex flex-col w-full">
-          <header className="h-16 bg-white border-b fixed top-0 right-0 z-50 flex items-center px-4"
-                  style={{ left: sidebarMinimized ? '80px' : '280px' }}>
-            <div className="h-8 w-auto flex items-center">
-              <AppLogo className="h-full w-auto" />
-            </div>
+          <header className="h-16 bg-white border-b fixed top-0 left-0 right-0 z-50 flex items-center px-4">
+            <AppLogo />
             <div className="flex-1" />
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
           <div className="flex flex-1">
-            <aside className="fixed top-0 bottom-0 left-0 bg-white transition-all duration-200 z-40"
+            <aside className="fixed top-16 bottom-0 left-0 bg-white transition-all duration-200 z-40"
                    style={{ width: sidebarMinimized ? '80px' : '280px' }}>
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main className="flex-1 bg-gray-50 min-h-screen transition-all duration-200" 
+            <main className="flex-1 bg-gray-50 min-h-screen transition-all duration-200 pl-[280px] pt-16" 
                   style={{ 
-                    marginLeft: sidebarMinimized ? '80px' : '280px',
-                    marginTop: '64px'
+                    paddingLeft: sidebarMinimized ? '80px' : '280px'
                   }}>
               {children}
             </main>
@@ -63,9 +58,7 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
           <HomeMenuNavigation workspace={workspace} />
         </PageNavigation>
         <PageMobileNavigation className="flex items-center justify-between">
-          <div className="h-8">
-            <AppLogo className="h-full w-auto" />
-          </div>
+          <AppLogo />
           <HomeMobileNavigation workspace={workspace} />
         </PageMobileNavigation>
         {children}
