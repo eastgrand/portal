@@ -31,14 +31,15 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
           </header>
 
           <div className="flex flex-1">
-            <aside className="fixed top-16 bottom-0 left-0 bg-white transition-all duration-200 z-40"
+            <aside className="fixed top-16 bottom-0 left-0 bg-white z-40 border-r"
                    style={{ width: sidebarMinimized ? '80px' : '280px' }}>
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main className="flex-1 bg-gray-50 min-h-screen transition-all duration-200 pl-[280px] pt-16" 
+            <main className="flex-1 bg-gray-50 min-h-screen" 
                   style={{ 
-                    paddingLeft: sidebarMinimized ? '80px' : '280px'
+                    marginLeft: sidebarMinimized ? '80px' : '280px',
+                    marginTop: '64px'
                   }}>
               {children}
             </main>
