@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   BorderedNavigationMenu,
   BorderedNavigationMenuItem,
@@ -39,7 +40,6 @@ export function HomeMenuNavigation(props: { workspace: UserWorkspace }) {
   return (
     <div className={'flex w-full flex-1 justify-between'}>
       <div className={'flex items-center space-x-8'}>
-        <AppLogo />
 
         <BorderedNavigationMenu>
           {routes.map((route) => (
