@@ -139,23 +139,29 @@ Optimize dropdowns for mobile
   }
 }
 
-[data-collapsible] > div:first-child {
-  background-color: rgb(249 250 251) !important; /* This matches bg-gray-50 */
-}
-
-[data-variant="sidebar"] {
+/* Remove the transparent div causing the gap */
+[data-collapsible] {
   background-color: rgb(249 250 251) !important;
 }
 
-/* Restore padding to the content */
-.flex.w-full.flex-1.flex-col {
-  padding-left: 1rem;
-  padding-right: 1rem;
+/* Remove the extra padding around fixed sidebar */
+[data-collapsible] > div.fixed {
+  padding-right: 0 !important;
 }
 
-@media (min-width: 1024px) {
-  .flex.w-full.flex-1.flex-col {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
+/* Make the content background extend full width */
+[data-sidebar="sidebar"] {
+  border-right: 1px solid var(--border-color) !important;
+  margin-right: 0 !important;
+}
+
+/* Reset to default padding */
+.flex.w-full.flex-1.flex-col {
+  padding: 0 16px;
+}
+
+/* Ensure proper stacking */
+.flex.flex-1 > main {
+  position: relative;
+  padding-left: 16px;
 }
