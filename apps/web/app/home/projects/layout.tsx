@@ -1,12 +1,7 @@
 import { use } from 'react';
 import { cookies } from 'next/headers';
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
-import {
-  Page,
-  PageLayoutStyle,
-  PageMobileNavigation,
-  PageNavigation,
-} from '@kit/ui/page';
+import { Page, PageLayoutStyle, PageMobileNavigation, PageNavigation } from '@kit/ui/page';
 import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
 import { AppLogo } from '~/components/app-logo';
 import { personalAccountNavigationConfig } from '~/config/personal-account-navigation.config';
@@ -29,23 +24,21 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen flex flex-col">
-          <header className="h-16 bg-white border-b px-8 flex items-center relative z-50 w-full">
+          <header className="h-16 bg-white border-b w-full flex items-center px-4">
             <AppLogo />
             <div className="flex-1" />
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
-          <div className="flex-1 flex min-w-0">
-            <aside className="fixed left-0 top-16 bottom-0 w-[280px] bg-white border-r"
+          <div className="flex flex-1">
+            <aside className="fixed top-16 bottom-0 left-0 w-[280px] bg-white border-r transition-all duration-200"
                    style={{ width: sidebarMinimized ? '80px' : '280px' }}>
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main className="flex-1 bg-gray-50 min-w-0" 
+            <main className="flex-1 bg-gray-50 transition-all duration-200" 
                   style={{ marginLeft: sidebarMinimized ? '80px' : '280px' }}>
-              <div className="w-full max-w-[2000px] mx-auto px-8">
-                {children}
-              </div>
+              {children}
             </main>
           </div>
         </div>
@@ -56,19 +49,16 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
 
 function HeaderLayout({ children }: React.PropsWithChildren) {
   const workspace = use(loadUserWorkspace());
-
   return (
     <UserWorkspaceContextProvider value={workspace}>
       <Page style={'header'}>
         <PageNavigation>
           <HomeMenuNavigation workspace={workspace} />
         </PageNavigation>
-
-        <PageMobileNavigation className={'flex items-center justify-between'}>
+        <PageMobileNavigation className="flex items-center justify-between">
           <AppLogo />
           <HomeMobileNavigation workspace={workspace} />
         </PageMobileNavigation>
-
         {children}
       </Page>
     </UserWorkspaceContextProvider>
@@ -77,8 +67,7 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
 
 async function getLayoutStyle() {
   const cookieStore = await cookies();
-  return (cookieStore.get('layout-style')?.value as PageLayoutStyle) ?? 
-         personalAccountNavigationConfig.style;
+  return (cookieStore.get('layout-style')?.value as PageLayoutStyle) ?? personalAccountNavigationConfig.style;
 }
 
 export default withI18n(ProjectsLayout);
