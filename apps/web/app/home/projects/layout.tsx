@@ -1,6 +1,5 @@
 import { use } from 'react';
 import { cookies } from 'next/headers';
-
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
 import {
   Page,
@@ -9,12 +8,9 @@ import {
   PageNavigation,
 } from '@kit/ui/page';
 import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
-
 import { AppLogo } from '~/components/app-logo';
 import { personalAccountNavigationConfig } from '~/config/personal-account-navigation.config';
 import { withI18n } from '~/lib/i18n/with-i18n';
-
-// home imports
 import { HomeMenuNavigation } from '../(user)/_components/home-menu-navigation';
 import { HomeMobileNavigation } from '../(user)/_components/home-mobile-navigation';
 import { HomeSidebar } from '../(user)/_components/home-sidebar';
@@ -22,15 +18,8 @@ import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
 
 function ProjectsLayout({ children }: React.PropsWithChildren) {
   const style = use(getLayoutStyle());
-
-  if (style === 'sidebar') {
-    return <SidebarLayout>{children}</SidebarLayout>;
-  }
-
-  return <HeaderLayout>{children}</HeaderLayout>;
+  return style === 'sidebar' ? <SidebarLayout>{children}</SidebarLayout> : <HeaderLayout>{children}</HeaderLayout>;
 }
-
-export default withI18n(ProjectsLayout);
 
 function SidebarLayout({ children }: React.PropsWithChildren) {
   const workspace = use(loadUserWorkspace());
@@ -40,23 +29,25 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen flex flex-col">
-          <header className="h-16 bg-white border-b px-4 flex items-center relative z-50">
+          <header className="h-16 bg-white border-b px-8 flex items-center relative z-50 w-full">
             <AppLogo />
             <div className="flex-1" />
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
-          <Page style={'sidebar'} className="flex-1">
-  <PageNavigation>
-    <div className="pt-0">
-      <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
-    </div>
-  </PageNavigation>
-
-  <main className="flex-1 bg-gray-50 w-full pl-[280px]" style={{ marginLeft: sidebarMinimized ? '80px' : '0' }}>
-    {children}
-  </main>
-</Page>
+          <div className="flex-1 flex min-w-0">
+            <aside className="fixed left-0 top-16 bottom-0 w-[280px] bg-white border-r"
+                   style={{ width: sidebarMinimized ? '80px' : '280px' }}>
+              <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
+            </aside>
+            
+            <main className="flex-1 bg-gray-50 min-w-0" 
+                  style={{ marginLeft: sidebarMinimized ? '80px' : '280px' }}>
+              <div className="w-full max-w-[2000px] mx-auto px-8">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
       </SidebarProvider>
     </UserWorkspaceContextProvider>
@@ -74,7 +65,8 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
         </PageNavigation>
 
         <PageMobileNavigation className={'flex items-center justify-between'}>
-          <MobileNavigation workspace={workspace} />
+          <AppLogo />
+          <HomeMobileNavigation workspace={workspace} />
         </PageMobileNavigation>
 
         {children}
@@ -83,25 +75,10 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
   );
 }
 
-function MobileNavigation({
-  workspace,
-}: {
-  workspace: Awaited<ReturnType<typeof loadUserWorkspace>>;
-}) {
-  return (
-    <>
-      <AppLogo />
-
-      <HomeMobileNavigation workspace={workspace} />
-    </>
-  );
-}
-
 async function getLayoutStyle() {
   const cookieStore = await cookies();
-
-  return (
-    (cookieStore.get('layout-style')?.value as PageLayoutStyle) ??
-    personalAccountNavigationConfig.style
-  );
+  return (cookieStore.get('layout-style')?.value as PageLayoutStyle) ?? 
+         personalAccountNavigationConfig.style;
 }
+
+export default withI18n(ProjectsLayout);
