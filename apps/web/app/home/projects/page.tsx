@@ -70,7 +70,7 @@ export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
   return (
-    <div className="flex flex-col min-h-full w-full">
+    <div className="flex flex-col min-h-full w-full bg-gray-50">
       <div className="px-8 py-6">
         <h1 className="text-xl font-semibold">
           Projects
