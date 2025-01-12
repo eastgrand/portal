@@ -150,7 +150,3 @@ Optimize dropdowns for mobile
 [data-sidebar="sidebar"] {
   border-right-width: 1px !important;
 }
-
-.group > div:first-child {
-  display: none;
-}
