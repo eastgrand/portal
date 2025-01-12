@@ -139,31 +139,23 @@ Optimize dropdowns for mobile
   }
 }
 
-/* Target the spacer div that's creating the gap */
 [data-collapsible] > div:first-child {
-  width: 0 !important;
-  display: none !important;
+  background-color: rgb(249 250 251) !important; /* This matches bg-gray-50 */
 }
 
-/* Remove any extra spacing around the fixed sidebar */
-[data-collapsible] > div.fixed {
-  margin: 0 !important;
+[data-variant="sidebar"] {
+  background-color: rgb(249 250 251) !important;
 }
 
-/* Ensure the content aligns properly with sidebar */
-[data-sidebar="sidebar"] {
-  margin: 0 !important;
-  border-right: 1px solid var(--border-color) !important;
-  width: 100% !important;
+/* Restore padding to the content */
+.flex.w-full.flex-1.flex-col {
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
-/* Remove any padding from the wrapper */
-.group.peer {
-  padding: 0 !important;
-  margin: 0 !important;
-}
-
-/* Ensure proper layering */
-.group.peer > div.fixed {
-  width: var(--sidebar-width) !important;
+@media (min-width: 1024px) {
+  .flex.w-full.flex-1.flex-col {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
