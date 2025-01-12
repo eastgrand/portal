@@ -70,23 +70,23 @@ export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
   return (
-    <div className="flex flex-col flex-1 w-full">
-      <div className="flex-1">
-        <div className="flex items-center justify-between py-4">
-          <div className="flex flex-col">
-            <div className="h-6">
-              <div className="text-xs font-normal leading-none text-muted-foreground"></div>
-            </div>
-            <h1 className="h-6 font-heading font-bold leading-none tracking-tight dark:text-white">
-              Projects
-            </h1>
+    <div className="flex flex-col flex-1 w-full px-6">
+    <div className="flex-1">
+      <div className="flex items-center justify-between py-6">
+        <div className="flex flex-col">
+          <div className="h-6">
+            <div className="text-xs font-normal leading-none text-muted-foreground"></div>
           </div>
+          <h1 className="h-6 font-heading font-bold leading-none tracking-tight dark:text-white">
+            Projects
+          </h1>
         </div>
+      </div>
 
-        <div className="flex w-full flex-1 flex-col">
-          <div className="grid gap-4">
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="space-y-4">
+      <div className="flex w-full flex-1 flex-col">
+        <div className="grid gap-6">
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="space-y-6 p-6">
                 <div className="flex items-center justify-between">
                   <input 
                     type="text" 
