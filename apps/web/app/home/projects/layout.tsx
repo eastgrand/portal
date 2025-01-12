@@ -25,7 +25,6 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen flex flex-col w-full">
           <header className="h-16 bg-white border-b fixed top-0 left-0 right-0 z-50 flex items-center px-4">
-            <AppLogo />
             <div className="flex-1" />
             <HomeMenuNavigation workspace={workspace} />
           </header>
