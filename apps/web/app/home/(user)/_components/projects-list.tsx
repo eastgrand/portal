@@ -170,8 +170,8 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
         className="max-w-sm"
       />
 
-      <div className="w-full">
-        <Table>
+<div className="w-full overflow-x-auto">
+<Table className="w-full">
           <TableHeader>
             <TableRow>
               <TableHead>Project Name</TableHead>

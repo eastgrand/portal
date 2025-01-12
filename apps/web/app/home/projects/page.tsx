@@ -70,25 +70,25 @@ export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
   return (
-    <div className="flex flex-col flex-1 w-full px-6">
-      <div className="flex-1">
-        <div className="flex items-center justify-between py-6">
-          <div className="flex flex-col">
-            <div className="h-6">
-              <div className="text-xs font-normal leading-none text-muted-foreground"></div>
-            </div>
-            <h1 className="h-6 font-heading font-bold leading-none tracking-tight dark:text-white">
-              Projects
-            </h1>
+    <div className="flex flex-col flex-1 w-full">
+    <div className="px-6 py-4">
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col">
+          <div className="h-6">
+            <div className="text-xs font-normal leading-none text-muted-foreground"></div>
           </div>
-        </div>
-
-      <div className="bg-white w-full">
-        <div className="p-6">
-          <ProjectsList projects={projects} userRole={userRole} />
+          <h1 className="h-6 font-heading font-bold leading-none tracking-tight dark:text-white">
+            Projects
+          </h1>
         </div>
       </div>
     </div>
+
+    <div className="bg-white w-full">
+      <div className="px-6">
+        <ProjectsList projects={projects} userRole={userRole} />
+      </div>
     </div>
+  </div>
   );
 }
