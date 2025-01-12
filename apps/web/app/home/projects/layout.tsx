@@ -10,6 +10,7 @@ import { HomeMenuNavigation } from '../(user)/_components/home-menu-navigation';
 import { HomeMobileNavigation } from '../(user)/_components/home-mobile-navigation';
 import { HomeSidebar } from '../(user)/_components/home-sidebar';
 import { loadUserWorkspace } from '../(user)/_lib/server/load-user-workspace';
+import styles from './styles.module.css';
 
 function ProjectsLayout({ children }: React.PropsWithChildren) {
   const style = use(getLayoutStyle());
@@ -30,9 +31,8 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
-          <div className="flex flex-1">
-            <aside className="fixed top-16 bottom-0 left-0 bg-white z-40 border-r"
-                   style={{ width: sidebarMinimized ? '80px' : '280px' }}>
+          <div className={`flex flex-1 ${styles.sidebarContainer}`}>
+            <aside>
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             

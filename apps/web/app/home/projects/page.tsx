@@ -77,28 +77,12 @@ export default function ProjectsPage() {
           description={<Trans i18nKey={'projects:projectsDescription'} />}
         />
 
-        <PageBody className="-ml-4">
-          <div className="grid gap-4 px-4">
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              {/* Your button content */}
-            </div>
-
+        <PageBody>
+          <div className="grid gap-4">
             <If condition={projects.length === 0}>
               <div className="bg-white rounded-lg shadow-sm">
                 <EmptyState>
-                  <EmptyStateHeading>
-                    <Trans i18nKey={'projects:emptyState.heading'} />
-                  </EmptyStateHeading>
-                  
-                  <EmptyStateText>
-                    <Trans i18nKey={'projects:emptyState.text'} />
-                  </EmptyStateText>
-                  
-                  <EmptyStateButton>
-                    <Button>
-                      <Trans i18nKey={'projects:emptyState.button'} />
-                    </Button>
-                  </EmptyStateButton>
+                  {/* ... */}
                 </EmptyState>
               </div>
             </If>

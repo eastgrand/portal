@@ -138,3 +138,12 @@ Optimize dropdowns for mobile
     transform: translateY(1rem);
   }
 }
+
+.sidebarContainer [data-collapsible] {
+  padding-right: 0 !important;
+}
+
+.sidebarContainer [data-sidebar="sidebar"] {
+  border-right-width: 1px;
+  margin-right: 0 !important;
+}
