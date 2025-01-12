@@ -30,12 +30,12 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
             <HomeMenuNavigation workspace={workspace} />
           </header>
 
-          <div className="flex">
+          <div className="flex w-full">
             <aside className="fixed top-16 h-[calc(100vh-4rem)] bg-white">
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main className="bg-gray-50 min-h-screen flex-1" 
+            <main className="bg-gray-50 min-h-screen w-full" 
                   style={{ 
                     marginLeft: sidebarMinimized ? '80px' : '280px',
                     marginTop: '64px'
