@@ -70,7 +70,7 @@ export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
   return (
-    <div className="flex-1">
+    <main className="flex-1 overflow-x-hidden">
       <HomeLayoutPageHeader
         title={<Trans i18nKey={'projects:projects'} />}
         description={<Trans i18nKey={'projects:projectsDescription'} />}
@@ -97,6 +97,6 @@ export default function ProjectsPage() {
           </If>
         </div>
       </PageBody>
-    </div>
+    </main>
   );
 }
