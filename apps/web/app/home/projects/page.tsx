@@ -72,28 +72,38 @@ export default function ProjectsPage() {
   return (
     <div className="flex flex-col flex-1 w-full">
       <div className="flex-1">
-        <HomeLayoutPageHeader
-          title={<Trans i18nKey={'projects:projects'} />}
-          description={<Trans i18nKey={'projects:projectsDescription'} />}
-        />
-
-        <PageBody>
-          <div className="grid gap-4">
-            <If condition={projects.length === 0}>
-              <div className="bg-white rounded-lg shadow-sm">
-                <EmptyState>
-                  {/* ... */}
-                </EmptyState>
-              </div>
-            </If>
-
-            <If condition={projects.length > 0}>
-              <div className="bg-white rounded-lg shadow-sm">
-                <ProjectsList projects={projects} userRole={userRole} />
-              </div>
-            </If>
+        <div className="flex items-center justify-between py-4">
+          <div className="flex flex-col">
+            <div className="h-6">
+              <div className="text-xs font-normal leading-none text-muted-foreground"></div>
+            </div>
+            <h1 className="h-6 font-heading font-bold leading-none tracking-tight dark:text-white">
+              Projects
+            </h1>
           </div>
-        </PageBody>
+        </div>
+
+        <div className="flex w-full flex-1 flex-col">
+          <div className="grid gap-4">
+            <div className="bg-white rounded-lg shadow-sm">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <input 
+                    type="text" 
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 max-w-sm" 
+                    placeholder="Search projects..." 
+                  />
+                </div>
+                
+                <div className="rounded-md border">
+                  <div className="relative w-full overflow-auto">
+                    <ProjectsList projects={projects} userRole={userRole} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

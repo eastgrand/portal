@@ -139,14 +139,20 @@ Optimize dropdowns for mobile
   }
 }
 
-[data-collapsible] > div:first-child {
+[data-collapsible] {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.group.peer > div:first-child {
   display: none;
 }
 
 [data-collapsible] > div:last-child {
-  left: 0 !important;
+  padding: 0 !important;
 }
 
 [data-sidebar="sidebar"] {
+  margin: 0 !important;
   border-right-width: 1px !important;
 }
