@@ -170,13 +170,13 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
         className="max-w-sm"
       />
 
-      <div className="w-full">
+<div className="w-full">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Project Name</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="w-[300px]">Actions</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[300px]">Project Name</TableHead>
+              <TableHead className="w-[200px]">Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

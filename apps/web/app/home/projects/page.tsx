@@ -71,24 +71,19 @@ export default function ProjectsPage() {
 
   return (
     <div className="flex flex-col min-h-full w-full">
-    <header className="px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <div className="h-6">
-            <div className="text-xs font-normal leading-none text-muted-foreground"></div>
+      <div className="px-8 py-6">
+        <h1 className="text-xl font-semibold">
+          Projects
+        </h1>
+      </div>
+
+      <div className="px-8 pb-8">
+        <div className="bg-white rounded-lg border w-full">
+          <div className="p-6">
+            <ProjectsList projects={projects} userRole={userRole} />
           </div>
-          <h1 className="h-6 font-heading font-bold leading-none tracking-tight dark:text-white">
-            Projects
-          </h1>
         </div>
       </div>
-    </header>
-
-    <div className="flex-1 bg-white">
-      <div className="w-full">
-        <ProjectsList projects={projects} userRole={userRole} />
-      </div>
     </div>
-  </div>
   );
 }
