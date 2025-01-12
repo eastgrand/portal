@@ -78,7 +78,7 @@ export default function ProjectsPage() {
       </div>
 
       <div className="px-8 pb-8">
-        <div className="bg-white rounded-lg border w-full">
+        <div className="bg-white rounded-lg border">
           <div className="p-6">
             <ProjectsList projects={projects} userRole={userRole} />
           </div>
