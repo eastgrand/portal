@@ -24,16 +24,19 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
     <UserWorkspaceContextProvider value={workspace}>
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen">
-          <header className="h-16 bg-white border-b fixed top-0 left-0 right-0 z-50 flex items-center px-4">
-            <AppLogo />
-            <div className="flex-1" />
-            <HomeMenuNavigation workspace={workspace} />
-          </header>
+        <header className="h-16 fixed top-0 left-0 right-0 z-50 flex items-center px-4">
+  <div className="flex items-center flex-1">
+    <AppLogo />
+  </div>
+  <div className="flex items-center">
+    <HomeMenuNavigation workspace={workspace} />
+  </div>
+</header>
 
           <div className="flex w-full">
-            <aside className="fixed top-16 h-[calc(100vh-4rem)] bg-white">
-              <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
-            </aside>
+          <aside className="fixed top-16 h-[calc(100vh-4rem)] bg-white border-r">
+  <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
+</aside>
             
             <main className="bg-gray-50 min-h-screen flex-1 w-[calc(100vw-256px)]" 
                   style={{ 

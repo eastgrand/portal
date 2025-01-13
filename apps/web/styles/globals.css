@@ -143,3 +143,43 @@ Optimize dropdowns for mobile
   background-color: rgb(249 250 251) !important;
   border-right: 1px solid rgb(229, 231, 235);
 }
+
+/* Sidebar styles */
+aside.fixed {
+  background-color: white !important;
+}
+
+/* Update sidebar icons color */
+aside svg:not(.text-white) {
+  color: #33a852;
+}
+
+/* Header gradient background */
+header.h-16 {
+  background: linear-gradient(90deg, white 50%, #33a852 100%);
+}
+
+/* Update text color in the green portion of header */
+header.h-16 > div:last-child {
+  position: relative;
+}
+
+header.h-16 > div:last-child::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: transparent;
+}
+
+/* Make text and icons white in the green section */
+header.h-16 > div:last-child > *:not(.text-white) {
+  color: white;
+}
+
+/* Ensure SVG icons in the green section are white */
+header.h-16 > div:last-child svg:not(.text-white) {
+  color: white;
+}
