@@ -161,6 +161,7 @@ aside svg:not(.text-white) {
 
 /* Header gradient background */
 header.h-16 {
+  background: white;
   border-bottom: 1px solid rgb(229, 231, 235);
 }
 
