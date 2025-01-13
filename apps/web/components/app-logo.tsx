@@ -36,7 +36,7 @@ export function AppLogo({
   }
 
   return (
-    <Link aria-label={label ?? 'Home Page'} href={href ?? '/'}>
+    <Link aria-label={label ?? 'Home'} href={href ?? '/home/projects'}>
       <LogoImage className={className} />
     </Link>
   );

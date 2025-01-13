@@ -7,7 +7,7 @@ function AdminPage() {
     <>
       <PageHeader
         title={'Super Admin'}
-        description={`Your SaaS stats at a glance`}
+        description={``}
       />
 
       <PageBody>

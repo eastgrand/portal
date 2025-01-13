@@ -30,7 +30,7 @@ async function AccountsPage(props: AdminAccountsPageProps) {
     <>
       <PageHeader
         title={'Accounts'}
-        description={`Below is the list of all the accounts in your application.`}
+        description={``}
       />
 
       <PageBody>
