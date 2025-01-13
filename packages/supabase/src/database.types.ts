@@ -474,6 +474,7 @@ export type Database = {
           id: string
           name: string
           updated_at: string
+          app_url: string  // Add here
         }
         Insert: {
           account_id: string
@@ -482,6 +483,7 @@ export type Database = {
           id?: string
           name: string
           updated_at?: string
+          app_url?: string  // Add here with optional (?) modifier since it's not required for insert
         }
         Update: {
           account_id?: string
@@ -490,6 +492,7 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+          app_url?: string  // Add here with optional (?) modifier
         }
         Relationships: [
           {
