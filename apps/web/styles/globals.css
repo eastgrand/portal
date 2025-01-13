@@ -161,7 +161,7 @@ aside svg:not(.text-white) {
 
 /* Header gradient background */
 header.h-16 {
-  background: linear-gradient(90deg, white 50%, #33a852 100%);
+  background: linear-gradient(90deg, white 95%, #33a852 100%);
   border-bottom: 1px solid rgb(229, 231, 235);
 }
 
