@@ -1,7 +1,7 @@
 import { use } from 'react';
 import { cookies } from 'next/headers';
 import { UserWorkspaceContextProvider } from '@kit/accounts/components';
-import { PageLayoutStyle } from '@kit/ui/page';
+import { Page, PageLayoutStyle, PageMobileNavigation, PageNavigation } from '@kit/ui/page';
 import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
 import { AppLogo } from '~/components/app-logo';
 import { personalAccountNavigationConfig } from '~/config/personal-account-navigation.config';
@@ -38,12 +38,14 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main className="flex-1" 
+            <main className="bg-gray-50 min-h-screen flex-1 w-[calc(100vw-256px)]" 
                   style={{ 
                     marginLeft: sidebarMinimized ? '80px' : '256px',
                     marginTop: '64px'
                   }}>
-              {children}
+              <div className="w-full h-full">
+                {children}
+              </div>
             </main>
           </div>
         </div>
@@ -56,20 +58,16 @@ function HeaderLayout({ children }: React.PropsWithChildren) {
   const workspace = use(loadUserWorkspace());
   return (
     <UserWorkspaceContextProvider value={workspace}>
-      <div className="min-h-screen">
-        <header className="h-16 flex items-center px-4">
-          <div className="flex items-center flex-1">
-            <AppLogo />
-          </div>
-          <div className="flex items-center">
-            <HomeMenuNavigation workspace={workspace} />
-          </div>
-          <div className="md:hidden">
-            <HomeMobileNavigation workspace={workspace} />
-          </div>
-        </header>
+      <Page style={'header'}>
+        <PageNavigation>
+          <HomeMenuNavigation workspace={workspace} />
+        </PageNavigation>
+        <PageMobileNavigation className="flex items-center justify-between">
+          <AppLogo />
+          <HomeMobileNavigation workspace={workspace} />
+        </PageMobileNavigation>
         {children}
-      </div>
+      </Page>
     </UserWorkspaceContextProvider>
   );
 }
