@@ -1,6 +1,6 @@
 import { use } from 'react';
 import { PersonalAccountSettingsContainer } from '@kit/accounts/personal-account-settings';
-import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
+//import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { Trans } from '@kit/ui/trans';
 
 import authConfig from '~/config/auth.config';
@@ -36,8 +36,7 @@ function PersonalAccountSettingsPage() {
 
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
-      <div className="flex flex-col gap-1 px-8 py-6">
-        <AppBreadcrumbs />
+      <div className="px-8 py-6">
         <h1 className="text-xl font-semibold">
           <Trans i18nKey="account:settingsTab" />
         </h1>
