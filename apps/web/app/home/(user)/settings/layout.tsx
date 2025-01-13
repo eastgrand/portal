@@ -38,13 +38,11 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main 
-              className="flex-1 bg-gray-50 min-h-screen w-full"
-              style={{
-                marginTop: '64px',
-                paddingLeft: sidebarMinimized ? '80px' : '256px'
-              }}
-            >
+            <main className="flex-1" 
+                  style={{ 
+                    marginLeft: sidebarMinimized ? '80px' : '256px',
+                    marginTop: '64px'
+                  }}>
               {children}
             </main>
           </div>
