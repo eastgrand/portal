@@ -8,7 +8,7 @@ import { personalAccountNavigationConfig } from '~/config/personal-account-navig
 import { withI18n } from '~/lib/i18n/with-i18n';
 import { HomeMenuNavigation } from '../_components/home-menu-navigation';
 import { HomeMobileNavigation } from '../_components/home-mobile-navigation';
-import { HomeSidebar } from '../_components/home-sidebar';
+//import { HomeSidebar } from '../_components/home-sidebar';
 import { loadUserWorkspace } from '../_lib/server/load-user-workspace';
 
 function UserSettingsLayout({ children }: React.PropsWithChildren) {
@@ -34,9 +34,7 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
           </header>
 
           <div className="flex w-full">
-            <aside className="fixed top-16 h-[calc(100vh-4rem)] bg-white border-r">
-              <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
-            </aside>
+
             
             <main className="bg-gray-50 min-h-screen flex-1 w-[calc(100vw-256px)]" 
                   style={{ 
