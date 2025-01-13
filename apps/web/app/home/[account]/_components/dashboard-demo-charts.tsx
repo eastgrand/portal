@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -55,7 +56,7 @@ export default function DashboardDemo() {
           'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'
         }
       >
-        <Card>
+        {/*<Card>
           <CardHeader>
             <CardTitle className={'flex items-center gap-2.5'}>
               <span>MRR</span>
@@ -154,7 +155,7 @@ export default function DashboardDemo() {
           <CardContent>
             <CustomersTable />
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   );
