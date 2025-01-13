@@ -18,20 +18,22 @@ import { HomeLayoutPageHeader } from '../../(user)/_components/home-page-header'
 import { CreateProjectDialog } from '../_components/create-project-dialog';
 import ProjectsList from '../../(user)/_components/projects-list';
 
-type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
-
-interface ProjectMember {
-  user_id: string;
-  role: UserRole;
-}
-
+// Match the types from ProjectsList exactly
 interface Project {
   id: string;
   name: string;
+  account_id: string;
   created_at: string;
+  updated_at: string;
+  description: string | null;
   app_url: string;
-  project_members?: ProjectMember[];
+  project_members: {
+    user_id: string;
+    role: 'owner' | 'admin' | 'member';
+  }[];
 }
+
+type UserRole = 'owner' | 'admin' | 'member';
 
 async function fetchProjects() {
   const client = getSupabaseServerComponentClient();
