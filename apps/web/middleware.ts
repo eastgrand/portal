@@ -140,27 +140,23 @@ function getPatterns() {
       handler: async (req: NextRequest, res: NextResponse) => {
         const {
           data: { user },
-          error,
         } = await getUser(req, res);
 
-        // If there's an error or no user, allow access to auth pages
-        if (error || !user) {
-          return res;
+        // the user is logged out, so we don't need to do anything
+        if (!user) {
+          return;
         }
 
-        // check if we need to verify MFA
+        // check if we need to verify MFA (user is authenticated but needs to verify MFA)
         const isVerifyMfa = req.nextUrl.pathname === pathsConfig.auth.verifyMfa;
 
         // If user is logged in and does not need to verify MFA,
-        // redirect to home page
+        // redirect to home page.
         if (!isVerifyMfa) {
           return NextResponse.redirect(
             new URL(pathsConfig.app.home, req.nextUrl.origin).href,
           );
         }
-
-        // Return the response for MFA verification
-        return res;
       },
     },
     {
@@ -168,14 +164,13 @@ function getPatterns() {
       handler: async (req: NextRequest, res: NextResponse) => {
         const {
           data: { user },
-          error,
         } = await getUser(req, res);
 
         const origin = req.nextUrl.origin;
         const next = req.nextUrl.pathname;
 
-        // If user is not logged in or there's an error, redirect to sign in page
-        if (!user || error) {
+        // If user is not logged in, redirect to sign in page.
+        if (!user) {
           const signIn = pathsConfig.auth.signIn;
           const redirectPath = `${signIn}?next=${next}`;
 
@@ -187,15 +182,12 @@ function getPatterns() {
         const requiresMultiFactorAuthentication =
           await checkRequiresMultiFactorAuthentication(supabase);
 
-        // If user requires multi-factor authentication, redirect to MFA page
+        // If user requires multi-factor authentication, redirect to MFA page.
         if (requiresMultiFactorAuthentication) {
           return NextResponse.redirect(
             new URL(pathsConfig.auth.verifyMfa, origin).href,
           );
         }
-
-        // User is authenticated and MFA verified, allow access
-        return res;
       },
     },
   ];
