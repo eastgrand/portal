@@ -38,7 +38,7 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
             
             <main className="bg-gray-50 min-h-screen flex-1 w-[calc(100vw-256px)]" 
                   style={{ 
-                    marginLeft: sidebarMinimized ? '80px' : '-400px',
+                    marginLeft: sidebarMinimized ? '80px' : '-420px',
                     marginTop: '64px'
                   }}>
               <div className="w-full h-full">
