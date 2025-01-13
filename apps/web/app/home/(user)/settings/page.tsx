@@ -1,5 +1,4 @@
 import { use } from 'react';
-
 import { PersonalAccountSettingsContainer } from '@kit/accounts/personal-account-settings';
 import { PageBody } from '@kit/ui/page';
 
@@ -9,6 +8,7 @@ import pathsConfig from '~/config/paths.config';
 import { createI18nServerInstance } from '~/lib/i18n/i18n.server';
 import { withI18n } from '~/lib/i18n/with-i18n';
 import { requireUserInServerComponent } from '~/lib/server/require-user-in-server-component';
+import { Trans } from '@kit/ui/trans';
 
 const features = {
   enableAccountDeletion: featureFlagsConfig.enableAccountDeletion,
@@ -35,15 +35,29 @@ function PersonalAccountSettingsPage() {
   const user = use(requireUserInServerComponent());
 
   return (
-    <PageBody>
-      <div className={'flex w-full flex-1 flex-col lg:max-w-2xl'}>
-        <PersonalAccountSettingsContainer
-          userId={user.id}
-          features={features}
-          paths={paths}
-        />
+    <div className="flex flex-col min-h-full w-full bg-gray-50">
+      <div className="px-8 py-6">
+        <h1 className="text-xl font-semibold">
+          <Trans i18nKey="account:settingsTab" />
+        </h1>
       </div>
-    </PageBody>
+
+      <div className="px-8 pb-8">
+        <div className="bg-white rounded-lg border">
+          <div className="p-6">
+            <PageBody>
+              <div className="flex w-full flex-1 flex-col lg:max-w-2xl">
+                <PersonalAccountSettingsContainer
+                  userId={user.id}
+                  features={features}
+                  paths={paths}
+                />
+              </div>
+            </PageBody>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
