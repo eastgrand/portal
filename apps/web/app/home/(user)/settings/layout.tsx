@@ -33,19 +33,17 @@ function SidebarLayout({ children }: React.PropsWithChildren) {
             </div>
           </header>
 
-          <div className="flex w-full">
-            <aside className="fixed top-16 h-[calc(100vh-4rem)] bg-white border-r">
+          <div className="flex w-full" data-collapsible>
+            <aside className="fixed top-16 h-[calc(100vh-4rem)] border-r">
               <HomeSidebar workspace={workspace} minimized={sidebarMinimized} />
             </aside>
             
-            <main className="bg-gray-50 min-h-screen flex-1 w-full" 
+            <main className="bg-gray-50 min-h-screen flex-1 w-[calc(100vw-256px)]" 
                   style={{ 
                     marginLeft: sidebarMinimized ? '80px' : '256px',
                     marginTop: '64px'
                   }}>
-              <div className="w-full h-full">
-                {children}
-              </div>
+              {children}
             </main>
           </div>
         </div>
