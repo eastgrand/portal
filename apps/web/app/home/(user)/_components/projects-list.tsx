@@ -35,6 +35,15 @@ interface Project {
     user_id: string;
     role: 'owner' | 'admin' | 'member';
   }[];
+  members: {
+    user_id: string;
+    role: UserRole;
+    created_at: string;
+    updated_at: string;
+    name: string;
+    email: string;
+    avatar_url?: string;
+  }[];
 }
 
 type UserRole = 'owner' | 'admin' | 'member';
@@ -203,6 +212,16 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
                     <MembersDialog 
                       projectId={project.id}
                       currentUserRole={userRole}
+                      members={project.members}
+                      onDeleteMember={async (userId: string) => {
+                        const response = await fetch(`/api/projects/${project.id}/members/${userId}`, {
+                          method: 'DELETE'
+                        });
+                        
+                        if (!response.ok) {
+                          throw new Error('Failed to delete member');
+                        }
+                      }}
                     >
                       <Button 
                         variant="default"
