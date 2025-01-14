@@ -1,10 +1,10 @@
 import 'server-only';
 
 import { SupabaseClient } from '@supabase/supabase-js';
-
 import { addDays, formatISO } from 'date-fns';
 import { z } from 'zod';
 
+import { getMailer } from '@kit/mailers';
 import { getLogger } from '@kit/shared/logger';
 import { Database } from '@kit/supabase/database';
 
@@ -34,29 +34,21 @@ class AccountInvitationsService {
    */
   async deleteInvitation(params: z.infer<typeof DeleteInvitationSchema>) {
     const logger = await getLogger();
-
-    const ctx = {
-      name: this.namespace,
-      ...params,
-    };
+    const ctx = { name: this.namespace, ...params };
 
     logger.info(ctx, 'Removing invitation...');
 
     const { data, error } = await this.client
       .from('invitations')
       .delete()
-      .match({
-        id: params.invitationId,
-      });
+      .match({ id: params.invitationId });
 
     if (error) {
       logger.error(ctx, `Failed to remove invitation`);
-
       throw error;
     }
 
     logger.info(ctx, 'Invitation successfully removed');
-
     return data;
   }
 
@@ -67,37 +59,21 @@ class AccountInvitationsService {
    */
   async updateInvitation(params: z.infer<typeof UpdateInvitationSchema>) {
     const logger = await getLogger();
-
-    const ctx = {
-      name: this.namespace,
-      ...params,
-    };
+    const ctx = { name: this.namespace, ...params };
 
     logger.info(ctx, 'Updating invitation...');
 
     const { data, error } = await this.client
       .from('invitations')
-      .update({
-        role: params.role,
-      })
-      .match({
-        id: params.invitationId,
-      });
+      .update({ role: params.role })
+      .match({ id: params.invitationId });
 
     if (error) {
-      logger.error(
-        {
-          ...ctx,
-          error,
-        },
-        'Failed to update invitation',
-      );
-
+      logger.error({ ...ctx, error }, 'Failed to update invitation');
       throw error;
     }
 
     logger.info(ctx, 'Invitation successfully updated');
-
     return data;
   }
 
@@ -107,18 +83,16 @@ class AccountInvitationsService {
   ) {
     const { data: members, error } = await this.client.rpc(
       'get_account_members',
-      {
-        account_slug: accountSlug,
-      },
+      { account_slug: accountSlug },
     );
 
     if (error) {
       throw error;
     }
 
-    const isUserAlreadyMember = members.find((member) => {
-      return member.email === invitation.email;
-    });
+    const isUserAlreadyMember = members.find(
+      (member) => member.email === invitation.email,
+    );
 
     if (isUserAlreadyMember) {
       throw new Error('User already member of the team');
@@ -139,75 +113,93 @@ class AccountInvitationsService {
     accountSlug: string;
   }) {
     const logger = await getLogger();
+    const mailer = await getMailer();
+    const ctx = { accountSlug, name: this.namespace };
 
-    const ctx = {
-      accountSlug,
-      name: this.namespace,
-    };
-
-    logger.info(ctx, 'Storing invitations...');
+    logger.info(ctx, 'Processing invitations...');
 
     try {
+      // Validate all invitations
       await Promise.all(
         invitations.map((invitation) =>
           this.validateInvitation(invitation, accountSlug),
         ),
       );
-    } catch (error) {
-      logger.error(
-        {
-          ...ctx,
-          error: (error as Error).message,
-        },
-        'Error validating invitations',
+
+      // Get account details
+      const { data: account, error: accountError } = await this.client
+        .from('accounts')
+        .select('name')
+        .eq('slug', accountSlug)
+        .single();
+
+      if (accountError || !account) {
+        logger.error(ctx, 'Account not found in database. Cannot send invitations.');
+        throw new Error('Account not found');
+      }
+
+      // Add invitations to database
+      const response = await this.client.rpc('add_invitations_to_account', {
+        invitations,
+        account_slug: accountSlug,
+      });
+
+      if (response.error) {
+        logger.error(
+          { ...ctx, error: response.error },
+          `Failed to add invitations to account ${accountSlug}`,
+        );
+        throw response.error;
+      }
+
+      const responseInvitations = Array.isArray(response.data)
+        ? response.data
+        : [response.data];
+
+      // Send emails for each invitation
+      await Promise.all(
+        responseInvitations.map(async (record) => {
+          try {
+            const inviteUrl = new URL(
+              `/accept-invite?token=${record.invite_token}`,
+              process.env.NEXT_PUBLIC_SITE_URL,
+            ).toString();
+
+            const emailData = {
+              to: record.email,
+              from: process.env.MAILER_FROM_EMAIL ?? 'noreply@example.com',
+              subject: `Invitation to join ${account.name}`,
+              html: `
+                <p>You've been invited to join ${account.name}.</p>
+                <p>Click here to accept: <a href="${inviteUrl}">${inviteUrl}</a></p>
+              `,
+            };
+
+            await mailer.sendEmail(emailData);
+
+            logger.info(
+              { ...ctx, email: record.email },
+              'Invitation email sent successfully',
+            );
+          } catch (error) {
+            logger.error(
+              { ...ctx, error, email: record.email },
+              'Failed to send invitation email',
+            );
+          }
+        }),
       );
 
+      logger.info(
+        { ...ctx, count: responseInvitations.length },
+        'All invitations processed',
+      );
+
+      return responseInvitations;
+    } catch (error) {
+      logger.error({ ...ctx, error }, 'Failed to process invitations');
       throw error;
     }
-
-    const accountResponse = await this.client
-      .from('accounts')
-      .select('name')
-      .eq('slug', accountSlug)
-      .single();
-
-    if (!accountResponse.data) {
-      logger.error(
-        ctx,
-        'Account not found in database. Cannot send invitations.',
-      );
-
-      throw new Error('Account not found');
-    }
-
-    const response = await this.client.rpc('add_invitations_to_account', {
-      invitations,
-      account_slug: accountSlug,
-    });
-
-    if (response.error) {
-      logger.error(
-        {
-          ...ctx,
-          error: response.error,
-        },
-        `Failed to add invitations to account ${accountSlug}`,
-      );
-
-      throw response.error;
-    }
-
-    const responseInvitations = Array.isArray(response.data)
-      ? response.data
-      : [response.data];
-
-    logger.info(
-      {
-        ...ctx,
-        count: responseInvitations.length,
-      },
-      'Invitations added to account',
-    );
   }
 
   /**
@@ -222,10 +214,7 @@ class AccountInvitationsService {
     },
   ) {
     const logger = await getLogger();
-    const ctx = {
-      name: this.namespace,
-      ...params,
-    };
+    const ctx = { name: this.namespace, ...params };
 
     logger.info(ctx, 'Accepting invitation to team');
 
@@ -235,19 +224,11 @@ class AccountInvitationsService {
     });
 
     if (error) {
-      logger.error(
-        {
-          ...ctx,
-          error,
-        },
-        'Failed to accept invitation to team',
-      );
-
+      logger.error({ ...ctx, error }, 'Failed to accept invitation to team');
       throw error;
     }
 
     logger.info(ctx, 'Successfully accepted invitation to team');
-
     return data;
   }
 
@@ -258,11 +239,7 @@ class AccountInvitationsService {
    */
   async renewInvitation(invitationId: number) {
     const logger = await getLogger();
-
-    const ctx = {
-      invitationId,
-      name: this.namespace,
-    };
+    const ctx = { invitationId, name: this.namespace };
 
     logger.info(ctx, 'Renewing invitation...');
 
@@ -270,27 +247,15 @@ class AccountInvitationsService {
 
     const { data, error } = await this.client
       .from('invitations')
-      .update({
-        expires_at: sevenDaysFromNow,
-      })
-      .match({
-        id: invitationId,
-      });
+      .update({ expires_at: sevenDaysFromNow })
+      .match({ id: invitationId });
 
     if (error) {
-      logger.error(
-        {
-          ...ctx,
-          error,
-        },
-        'Failed to renew invitation',
-      );
-
+      logger.error({ ...ctx, error }, 'Failed to renew invitation');
       throw error;
     }
 
     logger.info(ctx, 'Invitation successfully renewed');
-
     return data;
   }
 }
