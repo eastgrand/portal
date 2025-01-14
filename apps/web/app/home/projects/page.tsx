@@ -46,60 +46,79 @@ interface RawProjectMember {
 async function fetchUserAccount(userId: string): Promise<{
   name: string;
   email: string;
-  avatar_url?: string;
 } | null> {
   const client = getSupabaseServerComponentClient();
   
-  const { data: account, error } = await client
-    .from('accounts')
-    .select('name, email')
-    .eq('id', userId)
-    .single();
-    
-  if (error) {
-    console.error('Error fetching user account:', error);
+  try {
+    const { data, error } = await client
+      .from('accounts')
+      .select('name, email')
+      .eq('id', userId)
+      .single();
+      
+    if (error || !data?.name || !data?.email) {
+      console.error('Error fetching user account:', error);
+      return null;
+    }
+
+    return {
+      name: data.name,
+      email: data.email
+    };
+  } catch (error) {
+    console.error('Error in fetchUserAccount:', error);
     return null;
   }
-
-  return {
-    name: account.name ?? 'Unknown User',
-    email: account.email ?? 'no-email',
-    avatar_url: undefined // accounts table doesn't have avatar_url
-  };
 }
 
 async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> {
   const client = getSupabaseServerComponentClient();
   
-  const { data: memberData, error: memberError } = await client
-    .from('project_members')
-    .select('user_id, role, created_at, updated_at')
-    .eq('project_id', projectId);
+  try {
+    const { data: memberData, error: memberError } = await client
+      .from('project_members')
+      .select('user_id, role, created_at, updated_at')
+      .eq('project_id', projectId);
 
-  if (memberError || !memberData) {
-    console.error('Error fetching project members:', memberError);
+    if (memberError || !memberData) {
+      console.error('Error fetching project members:', memberError);
+      return [];
+    }
+
+    const members: ProjectMember[] = [];
+
+    for (const member of memberData) {
+      const userAccount = await fetchUserAccount(member.user_id);
+      
+      if (userAccount) {
+        members.push({
+          user_id: member.user_id,
+          role: member.role as UserRole,
+          created_at: member.created_at,
+          updated_at: member.updated_at,
+          name: userAccount.name,
+          email: userAccount.email,
+          avatar_url: undefined
+        });
+      } else {
+        // Include member with default values if account fetch fails
+        members.push({
+          user_id: member.user_id,
+          role: member.role as UserRole,
+          created_at: member.created_at,
+          updated_at: member.updated_at,
+          name: 'Unknown User',
+          email: 'no-email',
+          avatar_url: undefined
+        });
+      }
+    }
+
+    return members;
+  } catch (error) {
+    console.error('Error in fetchProjectMembers:', error);
     return [];
   }
-
-  const members: ProjectMember[] = [];
-
-  for (const member of memberData) {
-    const userAccount = await fetchUserAccount(member.user_id);
-    
-    if (userAccount) {
-      members.push({
-        user_id: member.user_id,
-        role: member.role as UserRole,
-        created_at: member.created_at,
-        updated_at: member.updated_at,
-        name: userAccount.name,
-        email: userAccount.email,
-        avatar_url: userAccount.avatar_url
-      });
-    }
-  }
-
-  return members;
 }
 
 async function fetchProjects(): Promise<{
@@ -149,7 +168,7 @@ async function fetchProjects(): Promise<{
       userRole
     };
   } catch (error) {
-    console.error('Error fetching projects:', error);
+    console.error('Error in fetchProjects:', error);
     return defaultResult;
   }
 }
@@ -168,7 +187,10 @@ export default function ProjectsPage() {
       <div className="px-8 pb-8">
         <div className="bg-white rounded-lg border">
           <div className="p-6">
-            <ProjectsList projects={projects} userRole={userRole} />
+            <ProjectsList 
+              projects={projects ?? []} 
+              userRole={userRole ?? 'member'} 
+            />
           </div>
         </div>
       </div>
