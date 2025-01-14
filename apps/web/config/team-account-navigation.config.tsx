@@ -1,4 +1,4 @@
-import { CreditCard, FolderKanban, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { CreditCard, LayoutDashboard, Settings, Users } from 'lucide-react';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
 
@@ -16,12 +16,7 @@ const getRoutes = (account: string) => [
         path: `/home/${account}`,
         Icon: <LayoutDashboard className={iconClasses} />,
         end: true,
-      },
-      {
-        label: 'common:routes.projects',
-        path: `/home/${account}/projects`,
-        Icon: <FolderKanban className={iconClasses} />,
-     },
+      }
     ],
   },
   {
