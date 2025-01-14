@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,10 @@ import {
   TableRow,
 } from "@kit/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@kit/ui/avatar";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { Button } from "@kit/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@kit/ui/tooltip";
+import { useToast } from "@kit/ui/use-toast";
 
 type UserRole = 'owner' | 'admin' | 'member' | 'super_admin';
 
@@ -38,45 +39,92 @@ interface MembersDialogProps {
   children: React.ReactNode;
 }
 
+interface UseMembersListResult {
+  members: Member[];
+  isLoading: boolean;
+  error: string | null;
+  deleteMember: (memberId: string) => Promise<boolean>;
+}
+
+const useMembersList = (projectId: string): UseMembersListResult => {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/projects/${projectId}/members`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch members');
+        }
+
+        const data = await response.json();
+        setMembers(data);
+        setError(null);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to load members');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchMembers();
+  }, [projectId]);
+
+  const deleteMember = async (memberId: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/members/${memberId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete member');
+      }
+
+      setMembers(prevMembers => prevMembers.filter(member => member.id !== memberId));
+      return true;
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete member');
+    }
+  };
+
+  return { members, isLoading, error, deleteMember };
+};
+
 const MembersDialog: React.FC<MembersDialogProps> = ({ 
   projectId, 
   currentUserRole,
   children 
 }) => {
-  // This would normally come from an API call
-  const members: Member[] = [
-    { 
-      id: '1', 
-      name: 'John Doe', 
-      email: 'john@example.com', 
-      avatar_url: 'https://example.com/avatar1.jpg',
-      role: 'owner'
-    },
-    { 
-      id: '2', 
-      name: 'Jane Smith', 
-      email: 'jane@example.com', 
-      avatar_url: 'https://example.com/avatar2.jpg',
-      role: 'member'
-    },
-  ];
+  const { toast } = useToast();
+  const { members, isLoading, error, deleteMember } = useMembersList(projectId);
 
-  const canDeleteMember = (memberRole: UserRole) => {
-    // Super admin can delete anyone
+  const canDeleteMember = (memberRole: UserRole): boolean => {
     if (currentUserRole === 'super_admin') return true;
-    
-    // Owner can delete anyone except super_admin
     if (currentUserRole === 'owner' && memberRole !== 'super_admin') return true;
-    
     return false;
   };
 
-  const handleDelete = (memberId: string) => {
-    console.log('Delete member:', memberId);
-    // Implementation for member deletion would go here
+  const handleDelete = async (memberId: string): Promise<void> => {
+    try {
+      await deleteMember(memberId);
+      toast({
+        title: "Member removed",
+        description: "The member has been removed from the project.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to remove member. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string): string => {
     return name
       .split(' ')
       .map(part => part[0])
@@ -84,7 +132,7 @@ const MembersDialog: React.FC<MembersDialogProps> = ({
       .toUpperCase();
   };
 
-  const renderDeleteButton = (member: Member) => {
+  const renderDeleteButton = (member: Member): JSX.Element => {
     const isDeleteEnabled = canDeleteMember(member.role);
     
     return (
@@ -99,7 +147,11 @@ const MembersDialog: React.FC<MembersDialogProps> = ({
                   ? 'text-red-500 hover:text-red-700 hover:bg-red-100' 
                   : 'text-gray-300 cursor-not-allowed'
               }`}
-              onClick={() => isDeleteEnabled && handleDelete(member.id)}
+              onClick={() => {
+                if (isDeleteEnabled) {
+                  void handleDelete(member.id);
+                }
+              }}
               disabled={!isDeleteEnabled}
             >
               <Trash2 className="h-4 w-4" />
@@ -126,35 +178,45 @@ const MembersDialog: React.FC<MembersDialogProps> = ({
         </DialogHeader>
         
         <div className="mt-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]"></TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell>
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={member.avatar_url} />
-                      <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-medium">{member.name}</TableCell>
-                  <TableCell>{member.email}</TableCell>
-                  <TableCell className="capitalize">{member.role.replace('_', ' ')}</TableCell>
-                  <TableCell>
-                    {renderDeleteButton(member)}
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-500 py-4">
+              {error}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]"></TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell>
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={member.avatar_url} />
+                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell className="font-medium">{member.name}</TableCell>
+                    <TableCell>{member.email}</TableCell>
+                    <TableCell className="capitalize">{member.role.replace('_', ' ')}</TableCell>
+                    <TableCell>
+                      {renderDeleteButton(member)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </DialogContent>
     </Dialog>
