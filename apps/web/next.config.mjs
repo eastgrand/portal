@@ -108,6 +108,11 @@ function getRemotePatterns() {
 async function getRedirects() {
   return [
     {
+      source: '/',
+      destination: '/auth/sign-in',
+      permanent: true,
+    },
+    {
       source: '/server-sitemap.xml',
       destination: '/sitemap.xml',
       permanent: true,
