@@ -1,6 +1,6 @@
 import { use } from 'react';
 
-import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
+//import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { PageBody } from '@kit/ui/page';
 import { Trans } from '@kit/ui/trans';
 
@@ -31,7 +31,7 @@ function TeamAccountHomePage({ params }: TeamAccountHomePageProps) {
       <TeamAccountLayoutPageHeader
         account={account}
         title={<Trans i18nKey={'common:routes.dashboard'} />}
-        description={<AppBreadcrumbs />}
+        description=''
       />
 
       <PageBody>
