@@ -1,7 +1,7 @@
 import { use } from 'react';
 import { cookies } from 'next/headers';
 import { TeamAccountWorkspaceContextProvider } from '@kit/team-accounts/components';
-import { Page, PageLayoutStyle } from '@kit/ui/page';
+import { PageLayoutStyle } from '@kit/ui/page';
 import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
 import { AppLogo } from '~/components/app-logo';
 import { getTeamAccountSidebarConfig } from '~/config/team-account-navigation.config';
@@ -84,20 +84,22 @@ function HeaderLayout({
 
   return (
     <TeamAccountWorkspaceContextProvider value={data}>
-      <Page style={'header'}>
-        <div className="h-16 flex items-center px-4 bg-white border-b">
+      <div className="min-h-screen">
+        <header className="h-16 fixed top-0 left-0 right-0 z-50 flex items-center px-4 bg-white border-b">
           <div className="flex items-center flex-1">
             <AppLogo />
           </div>
           <div className="flex items-center space-x-4">
             <TeamAccountNavigationMenu workspace={data} />
           </div>
-        </div>
+        </header>
 
-        <div className="flex-1 bg-gray-50">
-          {children}
-        </div>
-      </Page>
+        <main className="pt-16 bg-gray-50 min-h-screen w-full">
+          <div className="w-full h-full">
+            {children}
+          </div>
+        </main>
+      </div>
     </TeamAccountWorkspaceContextProvider>
   );
 }
