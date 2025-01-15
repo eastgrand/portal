@@ -8,8 +8,15 @@ import { If } from '@kit/ui/if';
 import { Trans } from '@kit/ui/trans';
 import { PageBody } from '@kit/ui/page';
 import ProjectsList from '../(user)/_components/projects-list';
+import { CreateProjectDialog } from '../[account]/_components/create-project-dialog';
+import {
+  EmptyStateButton
+} from '@kit/ui/empty-state';
 
-type UserRole = 'owner' | 'admin' | 'member';
+// ProjectsList expects these specific roles
+type ProjectListRole = 'owner' | 'admin' | 'member';
+// Our extended role type for the page
+type ExtendedUserRole = ProjectListRole | 'super-admin';
 
 interface Project {
   id: string;
@@ -21,14 +28,14 @@ interface Project {
   app_url: string;
   project_members: {
     user_id: string;
-    role: UserRole;
+    role: ProjectListRole;  // Use the restricted role type for project members
   }[];
   members: ProjectMember[];
 }
 
 interface ProjectMember {
   user_id: string;
-  role: UserRole;
+  role: ProjectListRole;  // Use the restricted role type for members
   created_at: string;
   updated_at: string;
   name: string;
@@ -91,20 +98,24 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
       const userAccount = await fetchUserAccount(member.user_id);
       
       if (userAccount) {
-        members.push({
-          user_id: member.user_id,
-          role: member.role as UserRole,
-          created_at: member.created_at,
-          updated_at: member.updated_at,
-          name: userAccount.name,
-          email: userAccount.email,
-          avatar_url: undefined
-        });
+        // Ensure role is of type ProjectListRole
+        const role = member.role as ProjectListRole;
+        if (role === 'owner' || role === 'admin' || role === 'member') {
+          members.push({
+            user_id: member.user_id,
+            role,
+            created_at: member.created_at,
+            updated_at: member.updated_at,
+            name: userAccount.name,
+            email: userAccount.email,
+            avatar_url: undefined
+          });
+        }
       } else {
         // Include member with default values if account fetch fails
         members.push({
           user_id: member.user_id,
-          role: member.role as UserRole,
+          role: 'member',  // Default to member role
           created_at: member.created_at,
           updated_at: member.updated_at,
           name: 'Unknown User',
@@ -123,12 +134,12 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
 
 async function fetchProjects(): Promise<{
   projects: Project[];
-  userRole: UserRole;
+  userRole: ExtendedUserRole;
 }> {
   const client = getSupabaseServerComponentClient();
   const defaultResult = {
     projects: [] as Project[],
-    userRole: 'member' as const
+    userRole: 'member' as ExtendedUserRole
   };
   
   try {
@@ -154,6 +165,7 @@ async function fetchProjects(): Promise<{
       return defaultResult;
     }
 
+    // Cast the role to our extended type
     const userRole = projectsData[0]?.project_members?.[0]?.role ?? defaultResult.userRole;
 
     const projectsWithMembers = await Promise.all(
@@ -165,7 +177,7 @@ async function fetchProjects(): Promise<{
 
     return {
       projects: projectsWithMembers,
-      userRole
+      userRole: userRole as ExtendedUserRole
     };
   } catch (error) {
     console.error('Error in fetchProjects:', error);
@@ -176,20 +188,31 @@ async function fetchProjects(): Promise<{
 export default function ProjectsPage() {
   const { projects, userRole } = use(fetchProjects());
 
+  // Map the extended role to ProjectListRole for the ProjectsList component
+  const projectListRole: ProjectListRole = userRole === 'super-admin' ? 'admin' : userRole;
+
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
       <div className="px-8 py-6">
-        <h1 className="text-xl font-semibold">
-          Projects
-        </h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-semibold">
+            Projects
+          </h1>
+          
+          <If condition={userRole === 'super-admin'}>
+            <CreateProjectDialog>
+              <EmptyStateButton>New Project</EmptyStateButton>
+            </CreateProjectDialog>
+          </If>
+        </div>
       </div>
 
       <div className="px-8 pb-8">
         <div className="bg-white rounded-lg border">
           <div className="p-6">
             <ProjectsList 
-              projects={projects ?? []} 
-              userRole={userRole ?? 'member'} 
+              projects={projects} 
+              userRole={projectListRole} 
             />
           </div>
         </div>
