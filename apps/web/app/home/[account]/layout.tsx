@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { TeamAccountWorkspaceContextProvider } from '@kit/team-accounts/components';
 import { PageLayoutStyle } from '@kit/ui/page';
 import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
-//import { AppLogo } from '~/components/app-logo';
+import { AppLogo } from '~/components/app-logo';
 import { getTeamAccountSidebarConfig } from '~/config/team-account-navigation.config';
 import { withI18n } from '~/lib/i18n/with-i18n';
 import { TeamAccountLayoutSidebar } from './_components/team-account-layout-sidebar';
@@ -34,6 +34,8 @@ function SidebarLayout({
       <SidebarProvider minimized={sidebarMinimized}>
         <div className="min-h-screen">
           <header className="h-16 fixed top-0 left-0 right-0 z-50 flex items-center px-4 bg-white border-b">
+            <div className="flex items-center flex-1">
+            </div>
             <div className="flex items-center space-x-4">
               <TeamAccountNavigationMenu workspace={data} />
             </div>
@@ -83,6 +85,8 @@ function HeaderLayout({
     <TeamAccountWorkspaceContextProvider value={data}>
       <div className="min-h-screen">
         <header className="h-16 fixed top-0 left-0 right-0 z-50 flex items-center px-4 bg-white border-b">
+          <div className="flex items-center flex-1">
+          </div>
           <div className="flex items-center space-x-4">
             <TeamAccountNavigationMenu workspace={data} />
           </div>
