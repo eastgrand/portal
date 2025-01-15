@@ -229,12 +229,6 @@ export default function ProjectsPage() {
           <h1 className="text-xl font-semibold">
             Projects
           </h1>
-          
-          <If condition={isSuperAdmin}>
-            <CreateProjectDialog>
-              <EmptyStateButton>New Project</EmptyStateButton>
-            </CreateProjectDialog>
-          </If>
         </div>
       </div>
 
