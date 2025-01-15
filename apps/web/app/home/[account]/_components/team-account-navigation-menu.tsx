@@ -3,7 +3,7 @@ import {
   BorderedNavigationMenuItem,
 } from '@kit/ui/bordered-navigation-menu';
 
-import { AppLogo } from '~/components/app-logo';
+//import { AppLogo } from '~/components/app-logo';
 import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
 import { getTeamAccountSidebarConfig } from '~/config/team-account-navigation.config';
 import { TeamAccountAccountsSelector } from '~/home/[account]/_components/team-account-accounts-selector';
@@ -39,7 +39,6 @@ export function TeamAccountNavigationMenu(props: {
   return (
     <div className={'flex w-full flex-1 justify-between'}>
       <div className={'flex items-center space-x-8'}>
-        <AppLogo />
 
         <BorderedNavigationMenu>
           {routes.map((route) => (

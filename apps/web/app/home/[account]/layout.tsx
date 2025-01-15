@@ -35,6 +35,7 @@ function SidebarLayout({
         <div className="min-h-screen">
           <header className="h-16 fixed top-0 left-0 right-0 z-50 flex items-center px-4 bg-white border-b">
             <div className="flex items-center flex-1">
+              <AppLogo />
             </div>
             <div className="flex items-center space-x-4">
               <TeamAccountNavigationMenu workspace={data} />
