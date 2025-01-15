@@ -208,14 +208,35 @@ export default function ProjectsPage() {
       </div>
 
       <div className="px-8 pb-8">
-        <div className="bg-white rounded-lg border">
-          <div className="p-6">
-            <ProjectsList 
-              projects={projects} 
-              userRole={projectListRole} 
-            />
+        <If condition={projects.length === 0}>
+          <div className="bg-white rounded-lg border">
+            <div className="p-6">
+              <ProjectsList 
+                projects={projects} 
+                userRole={projectListRole} 
+              />
+            </div>
           </div>
-        </div>
+        </If>
+
+        <If condition={projects.length > 0}>
+          <div className="mb-4 flex justify-end">
+            <If condition={userRole === 'super-admin'}>
+              <CreateProjectDialog>
+                <Button>New Project</Button>
+              </CreateProjectDialog>
+            </If>
+          </div>
+          
+          <div className="bg-white rounded-lg border">
+            <div className="p-6">
+              <ProjectsList 
+                projects={projects} 
+                userRole={projectListRole} 
+              />
+            </div>
+          </div>
+        </If>
       </div>
     </div>
   );
