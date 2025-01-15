@@ -6,7 +6,6 @@ import { SidebarProvider } from '@kit/ui/shadcn-sidebar';
 import { AppLogo } from '~/components/app-logo';
 import { getTeamAccountSidebarConfig } from '~/config/team-account-navigation.config';
 import { withI18n } from '~/lib/i18n/with-i18n';
-import { TeamAccountLayoutMobileNavigation } from './_components/team-account-layout-mobile-navigation';
 import { TeamAccountLayoutSidebar } from './_components/team-account-layout-sidebar';
 import { TeamAccountNavigationMenu } from './_components/team-account-navigation-menu';
 import { loadTeamWorkspace } from './_lib/server/team-account-workspace.loader';
@@ -28,11 +27,6 @@ function SidebarLayout({
   account: string;
 }>) {
   const data = use(loadTeamWorkspace(account));
-  const accounts = data.accounts.map(({ name, slug, picture_url }) => ({
-    label: name,
-    value: slug,
-    image: picture_url,
-  }));
   const sidebarMinimized = getTeamAccountSidebarConfig(account).sidebarCollapsed;
 
   return (
@@ -45,11 +39,6 @@ function SidebarLayout({
             </div>
             <div className="flex items-center space-x-4">
               <TeamAccountNavigationMenu workspace={data} />
-              <TeamAccountLayoutMobileNavigation
-                userId={data.user.id}
-                accounts={accounts}
-                account={account}
-              />
             </div>
           </header>
 
@@ -58,7 +47,11 @@ function SidebarLayout({
               <TeamAccountLayoutSidebar
                 account={account}
                 accountId={data.account.id}
-                accounts={accounts}
+                accounts={data.accounts.map(({ name, slug, picture_url }) => ({
+                  label: name,
+                  value: slug,
+                  image: picture_url,
+                }))}
                 user={data.user}
               />
             </aside>
@@ -88,11 +81,6 @@ function HeaderLayout({
   account: string;
 }>) {
   const data = use(loadTeamWorkspace(account));
-  const accounts = data.accounts.map(({ name, slug, picture_url }) => ({
-    label: name,
-    value: slug,
-    image: picture_url,
-  }));
 
   return (
     <TeamAccountWorkspaceContextProvider value={data}>
@@ -103,11 +91,6 @@ function HeaderLayout({
           </div>
           <div className="flex items-center space-x-4">
             <TeamAccountNavigationMenu workspace={data} />
-            <TeamAccountLayoutMobileNavigation
-              userId={data.user.id}
-              accounts={accounts}
-              account={account}
-            />
           </div>
         </div>
 
