@@ -9,7 +9,6 @@ import { If } from '@kit/ui/if';
 import { Trans } from '@kit/ui/trans';
 import { PageBody } from '@kit/ui/page';
 import ProjectsList from '../(user)/_components/projects-list';
-import { CreateProjectDialog } from '../[account]/_components/create-project-dialog';
 import { EmptyStateButton } from '@kit/ui/empty-state';
 import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
 
@@ -245,14 +244,6 @@ export default function ProjectsPage() {
         </If>
 
         <If condition={projects.length > 0}>
-          <div className="mb-4 flex justify-end">
-            <If condition={isSuperAdmin}>
-              <CreateProjectDialog>
-                <Button>New Project</Button>
-              </CreateProjectDialog>
-            </If>
-          </div>
-          
           <div className="bg-white rounded-lg border">
             <div className="p-6">
               <ProjectsList 
