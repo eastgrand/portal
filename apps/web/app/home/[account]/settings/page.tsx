@@ -1,7 +1,7 @@
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
 import { createTeamAccountsApi } from '@kit/team-accounts/api';
 import { TeamAccountSettingsContainer } from '@kit/team-accounts/components';
-import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
+//import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { PageBody } from '@kit/ui/page';
 import { Trans } from '@kit/ui/trans';
 
@@ -51,7 +51,7 @@ async function TeamAccountSettingsPage(props: TeamAccountSettingsPageProps) {
       <TeamAccountLayoutPageHeader
         account={account.slug}
         title={<Trans i18nKey={'teams:settings.pageTitle'} />}
-        description={<AppBreadcrumbs />}
+        description=''
       />
 
       <PageBody>

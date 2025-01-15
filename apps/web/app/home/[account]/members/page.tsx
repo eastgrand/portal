@@ -6,7 +6,7 @@ import {
   AccountMembersTable,
   InviteMembersDialogContainer,
 } from '@kit/team-accounts/components';
-import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
+//import { AppBreadcrumbs } from '@kit/ui/app-breadcrumbs';
 import { Button } from '@kit/ui/button';
 import {
   Card,
@@ -56,7 +56,7 @@ async function TeamAccountMembersPage({ params }: TeamAccountMembersPageProps) {
     <>
       <TeamAccountLayoutPageHeader
         title={<Trans i18nKey={'common:routes.members'} />}
-        description={<AppBreadcrumbs />}
+        description=''
         account={account.slug}
       />
 
