@@ -116,20 +116,18 @@ export function AccountSelector({
   };
 
   // Determine permissions based on role
-  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
+  const canInteractWithTeams = true;
+  const canCreateTeam = isSuperAdmin || (features.enableTeamCreation && (userRole === 'admin' || userRole === 'owner'));
 
   const handleAccountSelect = (currentValue: string) => {
-    if (!canInteractWithTeams) return;
     setOpen(false);
 
-    if (currentValue) {
-      if (currentValue === 'personal') {
-        window.location.href = '/projects';
-      } else {
-        window.location.href = `/accounts/${currentValue}/projects`;
-      }
-      // Call onAccountChange after starting navigation
+    if (currentValue === 'personal') {
+      onAccountChange(undefined);
+      window.location.href = '/projects';
+    } else {
       onAccountChange(currentValue);
+      window.location.href = `/accounts/${currentValue}/projects`;
     }
   };
 
@@ -280,7 +278,7 @@ export function AccountSelector({
 
           <Separator />
 
-          <If condition={isSuperAdmin || (features.enableTeamCreation && (userRole === 'admin' || userRole === 'owner'))}>
+          <If condition={canCreateTeam}>
             <div className={'p-1'}>
               <Button
                 data-test={'create-team-account-trigger'}
@@ -303,7 +301,7 @@ export function AccountSelector({
         </PopoverContent>
       </Popover>
 
-      <If condition={isSuperAdmin || (features.enableTeamCreation && (userRole === 'admin' || userRole === 'owner'))}>
+      <If condition={canCreateTeam}>
         <CreateTeamAccountDialog
           isOpen={isCreatingAccount}
           setIsOpen={setIsCreatingAccount}
