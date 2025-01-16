@@ -31,7 +31,6 @@ import { cn } from '@kit/ui/utils';
 
 import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
 import { usePersonalAccountData } from '../hooks/use-personal-account-data';
-import { useUserRole } from '../hooks/use-user-role';
 
 function UserAvatar(props: { pictureUrl?: string }) {
   return (
@@ -94,11 +93,10 @@ export function AccountSelector({
     userId ?? user.id,
     account,
   );
-  const { data: fetchedRole } = useUserRole(user.id);
 
   const isSuperAdmin = useMemo(() => {
-    return fetchedRole === 'super-admin';
-  }, [fetchedRole]);
+    return userRole === 'super-admin';
+  }, [userRole]);
 
   const canCreateTeam = isSuperAdmin;
 
