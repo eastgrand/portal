@@ -161,7 +161,7 @@ class AccountInvitationsService {
         responseInvitations.map(async (record) => {
           try {
             const inviteUrl = new URL(
-              `/accept-invite?token=${record.invite_token}`,
+              `/join?invite_token=${record.invite_token}`,
               process.env.NEXT_PUBLIC_SITE_URL,
             ).toString();
 
