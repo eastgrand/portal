@@ -83,7 +83,7 @@ export function AccountSelector({
   userId?: string;
   collapsed?: boolean;
   collisionPadding?: number;
-  userRole?: 'member' | 'owner' | 'admin';
+  userRole?: 'member' | 'owner' | 'admin' | 'super-admin';
   onAccountChange: (value: string | undefined) => void;
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -96,13 +96,15 @@ export function AccountSelector({
 
   // Determine permissions based on role
   const isSuperAdmin = useMemo(() => {
+    console.log('Full user metadata:', user?.raw_app_meta_data); // Debug full metadata
     const role = user?.raw_app_meta_data?.role;
-    console.log('User role:', role, 'Is super-admin?:', role === 'super-admin');
-    return role === 'super-admin';
+    const isSA = role?.toLowerCase() === 'super-admin' || role?.toLowerCase() === 'superadmin';
+    console.log('Role:', role, 'Is super-admin?:', isSA);
+    return isSA;
   }, [user]);
 
   // Only allow super-admin to create teams
-  const canCreateTeam = isSuperAdmin || (features.enableTeamCreation && userRole === 'admin');
+  const canCreateTeam = isSuperAdmin || userRole === 'super-admin';
 
   console.log('Can create team:', canCreateTeam); // Debug log
 
