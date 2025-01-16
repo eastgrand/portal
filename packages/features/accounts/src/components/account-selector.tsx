@@ -31,6 +31,7 @@ import { cn } from '@kit/ui/utils';
 
 import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
 import { usePersonalAccountData } from '../hooks/use-personal-account-data';
+import { useUserRole } from '../hooks/use-user-role';
 
 function UserAvatar(props: { pictureUrl?: string }) {
   return (
@@ -93,18 +94,13 @@ export function AccountSelector({
     userId ?? user.id,
     account,
   );
+  const { data: fetchedRole } = useUserRole(user.id);
 
-  // Determine permissions based on role
   const isSuperAdmin = useMemo(() => {
-    console.log('Full user metadata:', user?.raw_app_meta_data); // Debug full metadata
-    const role = user?.raw_app_meta_data?.role;
-    const isSA = role?.toLowerCase() === 'super-admin' || role?.toLowerCase() === 'superadmin';
-    console.log('Role:', role, 'Is super-admin?:', isSA);
-    return isSA;
-  }, [user]);
+    return fetchedRole === 'super-admin';
+  }, [fetchedRole]);
 
-  // Only allow super-admin to create teams
-  const canCreateTeam = isSuperAdmin || userRole === 'super-admin';
+  const canCreateTeam = isSuperAdmin;
 
   console.log('Can create team:', canCreateTeam); // Debug log
 
