@@ -3,8 +3,6 @@ import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
 import { CheckCircle, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@kit/ui/avatar';
 import { Button } from '@kit/ui/button';
 import {
@@ -21,6 +19,9 @@ import { Separator } from '@kit/ui/separator';
 import { Trans } from '@kit/ui/trans';
 import { cn } from '@kit/ui/utils';
 
+import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
+import { usePersonalAccountData } from '../hooks/use-personal-account-data';
+
 interface AccountSelectorProps {
   accounts: Array<{
     label: string | null;
@@ -30,13 +31,18 @@ interface AccountSelectorProps {
   features: {
     enableTeamCreation: boolean;
   };
-  _userId?: string;
+  _userId: string;
   selectedAccount?: string;
   collapsed?: boolean;
   className?: string;
   collisionPadding?: number;
   userRole: 'owner' | 'member' | 'admin';
   onAccountChange: (value: string | undefined) => void;
+  account?: {
+    id: string | null;
+    name: string | null;
+    picture_url: string | null;
+  };
 }
 
 const PERSONAL_ACCOUNT_SLUG = 'personal';
@@ -53,10 +59,12 @@ export default function AccountSelector({
   },
   collapsed = false,
   collisionPadding = 20,
+  account,
 }: AccountSelectorProps) {
   const [open, setOpen] = useState<boolean>(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
   const { t } = useTranslation('teams');
+  const { data: personalAccountData } = usePersonalAccountData(_userId, account);
 
   const value = useMemo(() => {
     return selectedAccount ?? PERSONAL_ACCOUNT_SLUG;
@@ -80,6 +88,14 @@ export default function AccountSelector({
   };
 
   const selected = accounts.find((account) => account.value === value);
+  const pictureUrl = personalAccountData?.picture_url;
+
+  const PersonalAccountAvatar = () =>
+    pictureUrl ? (
+      <UserAvatar pictureUrl={pictureUrl} />
+    ) : (
+      <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
+    );
 
   return (
     <>
@@ -100,7 +116,22 @@ export default function AccountSelector({
               className,
             )}
           >
-            <If condition={selected}>
+            <If
+              condition={selected}
+              fallback={
+                <span className={'flex max-w-full items-center space-x-4'}>
+                  <PersonalAccountAvatar />
+
+                  <span
+                    className={cn('truncate', {
+                      hidden: collapsed,
+                    })}
+                  >
+                    <Trans i18nKey={'teams:personalAccount'} />
+                  </span>
+                </span>
+              }
+            >
               {(account) => (
                 <span className={'flex max-w-full items-center space-x-4'}>
                   <Avatar className={'h-6 w-6 rounded-sm'}>
@@ -139,7 +170,7 @@ export default function AccountSelector({
                   onSelect={() => onAccountChange(undefined)}
                   value={PERSONAL_ACCOUNT_SLUG}
                 >
-                  <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
+                  <PersonalAccountAvatar />
                   <span className={'ml-2'}>
                     <Trans i18nKey={'teams:personalAccount'} />
                   </span>
@@ -237,5 +268,13 @@ export default function AccountSelector({
         />
       </If>
     </>
+  );
+}
+
+function UserAvatar(props: { pictureUrl?: string }) {
+  return (
+    <Avatar className={'h-6 w-6 rounded-sm'}>
+      <AvatarImage src={props.pictureUrl} />
+    </Avatar>
   );
 }
