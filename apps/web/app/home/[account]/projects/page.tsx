@@ -82,12 +82,24 @@ async function fetchProjects(): Promise<ProjectsData> {
     }
 
     const isSuperAdmin = user.app_metadata?.role === 'super-admin';
-    
-    // Debug logs
     console.log('Is Super Admin:', isSuperAdmin);
-    console.log('User app_metadata:', user.app_metadata);
 
-    // Build query based on user role with explicit left joins
+    // First, get a single project to determine the account_id context
+    const contextQuery = client
+      .from('projects')
+      .select('account_id')
+      .eq('project_members.user_id', user.id)
+      .limit(1)
+      .single();
+
+    const { data: contextProject, error: contextError } = await contextQuery;
+
+    if (contextError && !isSuperAdmin) {
+      console.error('Error fetching context project:', contextError);
+      throw contextError;
+    }
+
+    // Build main query
     let query = client
       .from('projects')
       .select(`
@@ -110,8 +122,11 @@ async function fetchProjects(): Promise<ProjectsData> {
         )
       `);
 
-    // If not super-admin, only show projects where user is a member
-    if (!isSuperAdmin) {
+    if (isSuperAdmin && contextProject?.account_id) {
+      // For super-admin, show all projects for the current account/team
+      query = query.eq('account_id', contextProject.account_id);
+    } else if (!isSuperAdmin) {
+      // For regular users, only show projects where they are a member
       query = query.eq('project_members.user_id', user.id);
     }
 
@@ -121,8 +136,6 @@ async function fetchProjects(): Promise<ProjectsData> {
       console.error('Database error:', error);
       throw error;
     }
-
-    console.log('Query result:', data); // Debug log for query results
 
     const projects = (data as unknown as DatabaseProject[]).map(project => ({
       ...project,
@@ -137,9 +150,9 @@ async function fetchProjects(): Promise<ProjectsData> {
       }))
     }));
 
-    // For super-admin, default to 'admin' role for all projects
+    // For super-admin, we don't care about project role
     const userProjectRole = isSuperAdmin 
-      ? 'admin' 
+      ? 'admin' // Default role for UI purposes only
       : (projects[0]?.project_members.find(
           member => member.user_id === user.id
         )?.role ?? 'member');
