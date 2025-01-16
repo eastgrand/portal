@@ -83,7 +83,7 @@ export function AccountSelector({
   userId?: string;
   collapsed?: boolean;
   collisionPadding?: number;
-  userRole?: 'member' | 'owner' | 'admin' | 'super-admin';
+  userRole?: string;
   onAccountChange: (value: string | undefined) => void;
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -94,12 +94,20 @@ export function AccountSelector({
     account,
   );
 
+  // Debug logs
+  console.log('Current userRole:', userRole);
+  console.log('Features:', features);
+
   const isSuperAdmin = useMemo(() => {
-    return userRole === 'super-admin';
+    const isAdmin = userRole === 'super-admin';
+    console.log('Is Super Admin?:', isAdmin);
+    return isAdmin;
   }, [userRole]);
 
   const canCreateTeam = useMemo(() => {
-    return isSuperAdmin && features.enableTeamCreation;
+    const canCreate = isSuperAdmin && features.enableTeamCreation;
+    console.log('Can Create Team?:', canCreate, { isSuperAdmin, enableTeamCreation: features.enableTeamCreation });
+    return canCreate;
   }, [isSuperAdmin, features.enableTeamCreation]);
 
   const value = useMemo(() => {
@@ -127,7 +135,7 @@ export function AccountSelector({
 
     if (currentValue === 'personal') {
       onAccountChange(undefined);
-      window.location.href = '/home/projects';
+      window.location.href = '/home';
     } else {
       onAccountChange(currentValue);
       window.location.href = `/home/${currentValue}`;
