@@ -6,6 +6,12 @@ import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
 import { CheckCircle, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+interface ExtendedUser extends User {
+  raw_app_meta_data?: {
+    role?: string;
+  };
+}
+
 import { Avatar, AvatarFallback, AvatarImage } from '@kit/ui/avatar';
 import { Button } from '@kit/ui/button';
 import {
@@ -39,7 +45,7 @@ export function AccountSelector({
   onAccountChange,
 }: {
   className?: string;
-  user: User;
+  user: ExtendedUser;
   account?: {
     id: string | null;
     name: string | null;
@@ -69,7 +75,10 @@ export function AccountSelector({
   );
 
   // Determine permissions based on role
-  const isSuperAdmin = user.app_metadata.role === 'super-admin';
+  const isSuperAdmin = useMemo(() => {
+    return user?.raw_app_meta_data?.role === 'super-admin';
+  }, [user]);
+  
   const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
   const canCreateTeam = userRole === 'admin' || isSuperAdmin;
 
@@ -227,8 +236,7 @@ export function AccountSelector({
                           <AvatarFallback
                             className={cn('rounded-sm', {
                               ['bg-background']: value === account.value,
-                              ['group-hover:bg-background']:
-                                value !== account.value,
+                              ['group-hover:bg-background']: value !== account.value,
                             })}
                           >
                             {account.label ? account.label[0] : ''}
