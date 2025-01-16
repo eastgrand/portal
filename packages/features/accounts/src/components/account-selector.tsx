@@ -90,7 +90,9 @@ export function AccountSelector({
     return user?.raw_app_meta_data?.role === 'super-admin';
   }, [user]);
 
-  const value = selectedAccount ?? 'personal';
+  const value = useMemo(() => {
+    return selectedAccount ?? 'personal';
+  }, [selectedAccount]);
 
   const pictureUrl = personalAccountData?.picture_url;
 
@@ -121,11 +123,13 @@ export function AccountSelector({
     setOpen(false);
 
     if (currentValue) {
-      window.location.href = `/accounts/${currentValue}/projects`;
-      // Call onAccountChange after navigation starts
-      if (onAccountChange) {
-        onAccountChange(currentValue);
+      if (currentValue === 'personal') {
+        window.location.href = '/projects';
+      } else {
+        window.location.href = `/accounts/${currentValue}/projects`;
       }
+      // Call onAccountChange after starting navigation
+      onAccountChange(currentValue);
     }
   };
 
@@ -276,7 +280,7 @@ export function AccountSelector({
 
           <Separator />
 
-          <If condition={isSuperAdmin || (features?.enableTeamCreation && (userRole === 'admin' || isSuperAdmin))}>
+          <If condition={isSuperAdmin || (features.enableTeamCreation && (userRole === 'admin' || userRole === 'owner'))}>
             <div className={'p-1'}>
               <Button
                 data-test={'create-team-account-trigger'}
@@ -299,7 +303,7 @@ export function AccountSelector({
         </PopoverContent>
       </Popover>
 
-      <If condition={isSuperAdmin || ((userRole === 'admin' || isSuperAdmin) && features?.enableTeamCreation)}>
+      <If condition={isSuperAdmin || (features.enableTeamCreation && (userRole === 'admin' || userRole === 'owner'))}>
         <CreateTeamAccountDialog
           isOpen={isCreatingAccount}
           setIsOpen={setIsCreatingAccount}
