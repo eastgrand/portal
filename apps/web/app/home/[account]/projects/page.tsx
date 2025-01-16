@@ -64,6 +64,83 @@ interface DatabaseProject {
   }>;
 }
 
+async function fetchUserAccount(userId: string): Promise<{
+  name: string;
+  email: string;
+} | null> {
+  const client = getSupabaseServerComponentClient();
+  
+  try {
+    const { data, error } = await client
+      .from('accounts')
+      .select('name, email')
+      .eq('id', userId)
+      .single();
+      
+    if (error || !data?.name || !data?.email) {
+      console.error('Error fetching user account:', error);
+      return null;
+    }
+
+    return {
+      name: data.name,
+      email: data.email
+    };
+  } catch (error) {
+    console.error('Error in fetchUserAccount:', error);
+    return null;
+  }
+}
+
+async function fetchProjectMembers(projectId: string): Promise<Project['members']> {
+  const client = getSupabaseServerComponentClient();
+  
+  try {
+    const { data: memberData, error: memberError } = await client
+      .from('project_members')
+      .select('user_id, role, created_at, updated_at')
+      .eq('project_id', projectId);
+
+    if (memberError || !memberData) {
+      console.error('Error fetching project members:', memberError);
+      return [];
+    }
+
+    const members: Project['members'] = [];
+
+    for (const member of memberData) {
+      const userAccount = await fetchUserAccount(member.user_id);
+      
+      if (userAccount) {
+        members.push({
+          user_id: member.user_id,
+          role: member.role as ProjectRole,
+          created_at: member.created_at,
+          updated_at: member.updated_at,
+          name: userAccount.name,
+          email: userAccount.email,
+          avatar_url: undefined
+        });
+      } else {
+        members.push({
+          user_id: member.user_id,
+          role: 'member',
+          created_at: member.created_at,
+          updated_at: member.updated_at,
+          name: 'Unknown User',
+          email: 'no-email',
+          avatar_url: undefined
+        });
+      }
+    }
+
+    return members;
+  } catch (error) {
+    console.error('Error in fetchProjectMembers:', error);
+    return [];
+  }
+}
+
 async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
   const client = getSupabaseServerComponentClient();
   
@@ -122,22 +199,17 @@ async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
 
     console.log('Query result:', { accountId: account.id, projectsFound: data?.length });
 
-    const projects = (data as unknown as DatabaseProject[]).map(project => ({
-      ...project,
-      members: project.project_members.map(member => ({
-        user_id: member.user_id,
-        role: member.role,
-        created_at: project.created_at,
-        updated_at: project.updated_at,
-        name: '', // We don't have access to user details
-        email: '',
-        avatar_url: undefined
+    // Fetch full member details for each project
+    const projectsWithMembers = await Promise.all(
+      (data as unknown as DatabaseProject[]).map(async (project) => ({
+        ...project,
+        members: await fetchProjectMembers(project.id)
       }))
-    }));
+    );
 
     return {
-      projects,
-      userRole: 'admin', // For super-admin, just return admin role
+      projects: projectsWithMembers,
+      userRole: isSuperAdmin ? 'admin' : (projectsWithMembers[0]?.project_members?.[0]?.role ?? 'member'),
       isSuperAdmin
     };
   } catch (error) {
@@ -165,7 +237,7 @@ export default function ProjectsPage({ params }: PageProps) {
         <div className="mb-4 flex justify-end">
           <CreateProjectDialog>
             <EmptyStateButton>
-              <Trans i18nKey="projects:createNew" />
+              <Trans i18nKey="New Project" />
             </EmptyStateButton>
           </CreateProjectDialog>
         </div>
@@ -173,16 +245,16 @@ export default function ProjectsPage({ params }: PageProps) {
         {!hasProjects ? (
           <EmptyState>
             <EmptyStateHeading>
-              <Trans i18nKey="projects:emptyState.title" />
+              <Trans i18nKey="Projects" />
             </EmptyStateHeading>
             
             <EmptyStateText>
-              <Trans i18nKey="projects:emptyState.description" />
+              <Trans i18nKey="No projects yet" />
             </EmptyStateText>
             
             <CreateProjectDialog>
               <EmptyStateButton>
-                <Trans i18nKey="projects:createNew" />
+                <Trans i18nKey="New Project" />
               </EmptyStateButton>
             </CreateProjectDialog>
           </EmptyState>
