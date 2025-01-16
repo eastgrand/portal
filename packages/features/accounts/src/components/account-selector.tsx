@@ -96,6 +96,7 @@ export function AccountSelector({
 
   // Determine permissions based on role
   const isSuperAdmin = useMemo(() => {
+    console.log('User role:', user?.raw_app_meta_data?.role); // Debug log
     return user?.raw_app_meta_data?.role === 'super-admin';
   }, [user]);
 
@@ -118,7 +119,7 @@ export function AccountSelector({
 
   // Determine permissions based on role
   const canInteractWithTeams = true;
-  const canCreateTeam = isSuperAdmin;
+  const canCreateTeam = true;
 
   const handleAccountSelect = (currentValue: string) => {
     setOpen(false);
