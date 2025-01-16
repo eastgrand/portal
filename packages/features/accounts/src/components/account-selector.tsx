@@ -69,7 +69,7 @@ export function AccountSelector({
   );
 
   // Determine permissions based on role
-  const isSuperAdmin = user?.app_metadata?.role === 'super-admin';
+  const isSuperAdmin = user.app_metadata.role === 'super-admin';
   const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
   const canCreateTeam = userRole === 'admin' || isSuperAdmin;
 
