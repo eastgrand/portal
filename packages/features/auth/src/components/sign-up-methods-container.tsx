@@ -120,7 +120,7 @@ function getDefaultValues() {
 
 function InviteAlert() {
   return (
-    <Alert variant={'info'}>
+    <Alert variant={'success'}>
       <AlertTitle>
         <Trans i18nKey={'auth:inviteAlertHeading'} />
       </AlertTitle>
