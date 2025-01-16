@@ -84,22 +84,31 @@ async function fetchProjects(): Promise<ProjectsData> {
     const isSuperAdmin = user.app_metadata?.role === 'super-admin';
     console.log('Is Super Admin:', isSuperAdmin);
 
-    // First, get a single project to determine the account_id context
-    const contextQuery = client
-      .from('projects')
-      .select('account_id')
-      .eq('project_members.user_id', user.id)
-      .limit(1)
-      .single();
+    // Get the current account ID from the URL params
+    // This would be passed in from the [account] dynamic route segment
+    const urlParams = new URLSearchParams(window.location.search);
+    const accountId = urlParams.get('accountId');
 
-    const { data: contextProject, error: contextError } = await contextQuery;
-
-    if (contextError && !isSuperAdmin) {
-      console.error('Error fetching context project:', contextError);
-      throw contextError;
+    if (!accountId) {
+      throw new Error('No account ID provided');
     }
 
-    // Build main query
+    // Verify user has access to this account if not super-admin
+    if (!isSuperAdmin) {
+      const { data: membership, error: membershipError } = await client
+        .from('accounts_memberships')
+        .select('account_role')
+        .eq('user_id', user.id)
+        .eq('account_id', accountId)
+        .single();
+
+      if (membershipError || !membership) {
+        console.error('Error fetching account membership:', membershipError);
+        throw new Error('User does not have access to this account');
+      }
+    }
+
+    // Build main query to get projects
     let query = client
       .from('projects')
       .select(`
@@ -122,11 +131,11 @@ async function fetchProjects(): Promise<ProjectsData> {
         )
       `);
 
-    if (isSuperAdmin && contextProject?.account_id) {
-      // For super-admin, show all projects for the current account/team
-      query = query.eq('account_id', contextProject.account_id);
-    } else if (!isSuperAdmin) {
-      // For regular users, only show projects where they are a member
+    // Always filter by account_id to get projects for current team
+    query = query.eq('account_id', accountId);
+
+    // For non-super-admins, also filter by project membership
+    if (!isSuperAdmin) {
       query = query.eq('project_members.user_id', user.id);
     }
 
@@ -136,6 +145,8 @@ async function fetchProjects(): Promise<ProjectsData> {
       console.error('Database error:', error);
       throw error;
     }
+
+    console.log('Projects found:', data?.length);
 
     const projects = (data as unknown as DatabaseProject[]).map(project => ({
       ...project,
@@ -150,9 +161,9 @@ async function fetchProjects(): Promise<ProjectsData> {
       }))
     }));
 
-    // For super-admin, we don't care about project role
+    // For super-admin, we don't care about the project role
     const userProjectRole = isSuperAdmin 
-      ? 'admin' // Default role for UI purposes only
+      ? 'admin' // Dummy role for UI purposes
       : (projects[0]?.project_members.find(
           member => member.user_id === user.id
         )?.role ?? 'member');
