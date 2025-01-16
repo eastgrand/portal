@@ -233,31 +233,31 @@ export default function ProjectsPage({ params }: PageProps) {
         description={<Trans i18nKey="projects:projectsDescription" />}
       />
 
-      <PageBody>
-        <div className="mb-4 flex justify-end">
-          <CreateProjectDialog>
-            <EmptyStateButton>
-              <Trans i18nKey="New Project" />
-            </EmptyStateButton>
-          </CreateProjectDialog>
-        </div>
+<PageBody>
+  <div className="mb-4 flex justify-end">
+    <CreateProjectDialog>
+      <EmptyStateButton>
+        New Project
+      </EmptyStateButton>
+    </CreateProjectDialog>
+  </div>
 
-        {!hasProjects ? (
-          <EmptyState>
-            <EmptyStateHeading>
-              <Trans i18nKey="Projects" />
-            </EmptyStateHeading>
-            
-            <EmptyStateText>
-              <Trans i18nKey="No projects yet" />
-            </EmptyStateText>
-            
-            <CreateProjectDialog>
-              <EmptyStateButton>
-                <Trans i18nKey="New Project" />
-              </EmptyStateButton>
-            </CreateProjectDialog>
-          </EmptyState>
+  {!hasProjects ? (
+    <EmptyState>
+      <EmptyStateHeading>
+        Projects
+      </EmptyStateHeading>
+      
+      <EmptyStateText>
+        No projects yet
+      </EmptyStateText>
+      
+      <CreateProjectDialog>
+        <EmptyStateButton>
+          New Project
+        </EmptyStateButton>
+      </CreateProjectDialog>
+    </EmptyState>
         ) : (
           <ProjectsList 
             projects={projects} 

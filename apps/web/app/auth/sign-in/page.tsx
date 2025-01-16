@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import Link from 'next/link';
 
 import { SignInMethodsContainer } from '@kit/auth/sign-in';
