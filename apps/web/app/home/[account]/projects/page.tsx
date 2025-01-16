@@ -82,8 +82,12 @@ async function fetchProjects(): Promise<ProjectsData> {
     }
 
     const isSuperAdmin = user.app_metadata?.role === 'super-admin';
+    
+    // Debug logs
+    console.log('Is Super Admin:', isSuperAdmin);
+    console.log('User app_metadata:', user.app_metadata);
 
-    // Build query based on user role
+    // Build query based on user role with explicit left joins
     let query = client
       .from('projects')
       .select(`
@@ -94,10 +98,10 @@ async function fetchProjects(): Promise<ProjectsData> {
         updated_at,
         description,
         app_url,
-        project_members (
+        project_members!left (
           user_id,
           role,
-          auth:users (
+          auth:users!left (
             id,
             email,
             raw_app_meta_data,
@@ -118,6 +122,8 @@ async function fetchProjects(): Promise<ProjectsData> {
       throw error;
     }
 
+    console.log('Query result:', data); // Debug log for query results
+
     const projects = (data as unknown as DatabaseProject[]).map(project => ({
       ...project,
       members: project.project_members.map(member => ({
@@ -131,9 +137,12 @@ async function fetchProjects(): Promise<ProjectsData> {
       }))
     }));
 
-    const userProjectRole = projects[0]?.project_members.find(
-      member => member.user_id === user.id
-    )?.role ?? 'member';
+    // For super-admin, default to 'admin' role for all projects
+    const userProjectRole = isSuperAdmin 
+      ? 'admin' 
+      : (projects[0]?.project_members.find(
+          member => member.user_id === user.id
+        )?.role ?? 'member');
 
     return {
       projects,
