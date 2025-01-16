@@ -1,4 +1,7 @@
+'use client';
+
 import { useMemo, useState } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
 import { CheckCircle, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -22,59 +25,59 @@ import { cn } from '@kit/ui/utils';
 import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
 import { usePersonalAccountData } from '../hooks/use-personal-account-data';
 
-interface AccountSelectorProps {
-  accounts: Array<{
-    label: string | null;
-    value: string | null;
-    image?: string | null;
-  }>;
-  features: {
-    enableTeamCreation: boolean;
-  };
-  _userId: string;
-  selectedAccount?: string;
-  collapsed?: boolean;
+export function AccountSelector({
+  className,
+  user,
+  features,
+  account,
+  accounts,
+  selectedAccount,
+  userId,
+  collapsed = false,
+  collisionPadding = 20,
+  userRole = 'member',
+  onAccountChange,
+}: {
   className?: string;
-  collisionPadding?: number;
-  userRole: 'owner' | 'member' | 'admin';
-  onAccountChange: (value: string | undefined) => void;
+  user: User;
   account?: {
     id: string | null;
     name: string | null;
     picture_url: string | null;
   };
-}
-
-const PERSONAL_ACCOUNT_SLUG = 'personal';
-
-export default function AccountSelector({
-  accounts,
-  selectedAccount,
-  onAccountChange,
-  _userId,
-  className,
-  userRole,
-  features = {
-    enableTeamCreation: true,
-  },
-  collapsed = false,
-  collisionPadding = 20,
-  account,
-}: AccountSelectorProps) {
+  features: {
+    enableTeamCreation: boolean;
+  };
+  accounts: Array<{
+    label: string | null;
+    value: string | null;
+    image?: string | null;
+  }>;
+  selectedAccount?: string;
+  userId?: string;
+  collapsed?: boolean;
+  collisionPadding?: number;
+  userRole?: 'member' | 'owner' | 'admin';
+  onAccountChange: (value: string | undefined) => void;
+}) {
   const [open, setOpen] = useState<boolean>(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
   const { t } = useTranslation('teams');
-  const { data: personalAccountData } = usePersonalAccountData(_userId, account);
+  const { data: personalAccountData } = usePersonalAccountData(
+    userId ?? user.id,
+    account,
+  );
+
+  // Determine permissions based on role
+  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin';
+  const canCreateTeam = userRole === 'admin';
 
   const value = useMemo(() => {
-    return selectedAccount ?? PERSONAL_ACCOUNT_SLUG;
+    return selectedAccount ?? 'personal';
   }, [selectedAccount]);
 
-  // Determine if user can interact with teams
-  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin';
-  
-  // Determine if user can create teams
-  const canCreateTeam = userRole === 'admin';
+  const selected = accounts.find((account) => account.value === value);
+  const pictureUrl = personalAccountData?.picture_url;
 
   const Icon = (props: { item: string }) => {
     return (
@@ -86,9 +89,6 @@ export default function AccountSelector({
       />
     );
   };
-
-  const selected = accounts.find((account) => account.value === value);
-  const pictureUrl = personalAccountData?.picture_url;
 
   const PersonalAccountAvatar = () =>
     pictureUrl ? (
@@ -136,12 +136,19 @@ export default function AccountSelector({
                 <span className={'flex max-w-full items-center space-x-4'}>
                   <Avatar className={'h-6 w-6 rounded-sm'}>
                     <AvatarImage src={account.image ?? undefined} />
-                    <AvatarFallback className={'group-hover:bg-background rounded-sm'}>
+
+                    <AvatarFallback
+                      className={'group-hover:bg-background rounded-sm'}
+                    >
                       {account.label ? account.label[0] : ''}
                     </AvatarFallback>
                   </Avatar>
 
-                  <span className={cn('truncate', { hidden: collapsed })}>
+                  <span
+                    className={cn('truncate', {
+                      hidden: collapsed,
+                    })}
+                  >
                     {account.label}
                   </span>
                 </span>
@@ -168,13 +175,14 @@ export default function AccountSelector({
               <CommandGroup>
                 <CommandItem
                   onSelect={() => onAccountChange(undefined)}
-                  value={PERSONAL_ACCOUNT_SLUG}
+                  value={'personal'}
                 >
                   <PersonalAccountAvatar />
+
                   <span className={'ml-2'}>
                     <Trans i18nKey={'teams:personalAccount'} />
                   </span>
-                  <Icon item={PERSONAL_ACCOUNT_SLUG} />
+                  <Icon item={'personal'} />
                 </CommandItem>
               </CommandGroup>
 
@@ -199,7 +207,7 @@ export default function AccountSelector({
                         {
                           ['bg-muted']: value === account.value,
                           ['cursor-default opacity-70']: !canInteractWithTeams,
-                        },
+                        }
                       )}
                       key={account.value}
                       value={account.value ?? ''}
@@ -214,10 +222,12 @@ export default function AccountSelector({
                       <div className={'flex items-center'}>
                         <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
                           <AvatarImage src={account.image ?? undefined} />
+
                           <AvatarFallback
                             className={cn('rounded-sm', {
                               ['bg-background']: value === account.value,
-                              ['group-hover:bg-background']: value !== account.value,
+                              ['group-hover:bg-background']:
+                                value !== account.value,
                             })}
                           >
                             {account.label ? account.label[0] : ''}
@@ -252,6 +262,7 @@ export default function AccountSelector({
                 }}
               >
                 <Plus className="mr-3 h-4 w-4" />
+
                 <span>
                   <Trans i18nKey={'teams:createTeam'} />
                 </span>
