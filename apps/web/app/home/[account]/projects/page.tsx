@@ -15,6 +15,12 @@ import ProjectsList from '../../(user)/_components/projects-list';
 
 type ProjectRole = 'owner' | 'admin' | 'member';
 
+interface PageProps {
+  params: {
+    account: string;
+  };
+}
+
 interface Project {
   id: string;
   name: string;
@@ -69,7 +75,7 @@ interface DatabaseProject {
   }>;
 }
 
-async function fetchProjects(): Promise<ProjectsData> {
+async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
   const client = getSupabaseServerComponentClient();
   
   try {
@@ -84,32 +90,19 @@ async function fetchProjects(): Promise<ProjectsData> {
     const isSuperAdmin = user.app_metadata?.role === 'super-admin';
     console.log('Is Super Admin:', isSuperAdmin);
 
-    // Get the current account ID from the URL params
-    // This would be passed in from the [account] dynamic route segment
-    const urlParams = new URLSearchParams(window.location.search);
-    const accountId = urlParams.get('accountId');
+    // Get account ID from slug
+    const { data: account } = await client
+      .from('accounts')
+      .select('id')
+      .eq('slug', accountSlug)
+      .single();
 
-    if (!accountId) {
-      throw new Error('No account ID provided');
+    if (!account) {
+      throw new Error('Account not found');
     }
 
-    // Verify user has access to this account if not super-admin
-    if (!isSuperAdmin) {
-      const { data: membership, error: membershipError } = await client
-        .from('accounts_memberships')
-        .select('account_role')
-        .eq('user_id', user.id)
-        .eq('account_id', accountId)
-        .single();
-
-      if (membershipError || !membership) {
-        console.error('Error fetching account membership:', membershipError);
-        throw new Error('User does not have access to this account');
-      }
-    }
-
-    // Build main query to get projects
-    let query = client
+    // Build query to get projects
+    const query = client
       .from('projects')
       .select(`
         id,
@@ -119,25 +112,18 @@ async function fetchProjects(): Promise<ProjectsData> {
         updated_at,
         description,
         app_url,
-        project_members!left (
+        project_members (
           user_id,
           role,
-          auth:users!left (
+          auth:users (
             id,
             email,
             raw_app_meta_data,
             user_metadata
           )
         )
-      `);
-
-    // Always filter by account_id to get projects for current team
-    query = query.eq('account_id', accountId);
-
-    // For non-super-admins, also filter by project membership
-    if (!isSuperAdmin) {
-      query = query.eq('project_members.user_id', user.id);
-    }
+      `)
+      .eq('account_id', account.id);
 
     const { data, error } = await query;
 
@@ -146,7 +132,7 @@ async function fetchProjects(): Promise<ProjectsData> {
       throw error;
     }
 
-    console.log('Projects found:', data?.length);
+    console.log('Query result:', { accountId: account.id, projectsFound: data?.length });
 
     const projects = (data as unknown as DatabaseProject[]).map(project => ({
       ...project,
@@ -161,16 +147,9 @@ async function fetchProjects(): Promise<ProjectsData> {
       }))
     }));
 
-    // For super-admin, we don't care about the project role
-    const userProjectRole = isSuperAdmin 
-      ? 'admin' // Dummy role for UI purposes
-      : (projects[0]?.project_members.find(
-          member => member.user_id === user.id
-        )?.role ?? 'member');
-
     return {
       projects,
-      userRole: userProjectRole,
+      userRole: 'admin', // For super-admin, always return admin role
       isSuperAdmin
     };
   } catch (error) {
@@ -183,8 +162,8 @@ async function fetchProjects(): Promise<ProjectsData> {
   }
 }
 
-export default function ProjectsPage() {
-  const { projects = [], userRole = 'member' } = use(fetchProjects());
+export default function ProjectsPage({ params }: PageProps) {
+  const { projects = [], userRole = 'member' } = use(fetchProjects(params.account));
   const hasProjects = Array.isArray(projects) && projects.length > 0;
 
   return (
