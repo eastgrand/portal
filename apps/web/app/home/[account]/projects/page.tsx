@@ -15,12 +15,6 @@ import ProjectsList from '../../(user)/_components/projects-list';
 
 type ProjectRole = 'owner' | 'admin' | 'member';
 
-interface PageProps {
-  params: {
-    account: string;
-  };
-}
-
 interface Project {
   id: string;
   name: string;
@@ -61,21 +55,10 @@ interface DatabaseProject {
   project_members: Array<{
     user_id: string;
     role: ProjectRole;
-    auth: {
-      id: string;
-      email: string;
-      raw_app_meta_data: {
-        role?: string;
-      } | null;
-      user_metadata: {
-        name?: string;
-        avatar_url?: string;
-      } | null;
-    };
   }>;
 }
 
-async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
+async function fetchProjects(): Promise<ProjectsData> {
   const client = getSupabaseServerComponentClient();
   
   try {
@@ -90,18 +73,7 @@ async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
     const isSuperAdmin = user.app_metadata?.role === 'super-admin';
     console.log('Is Super Admin:', isSuperAdmin);
 
-    // Get account ID from slug
-    const { data: account } = await client
-      .from('accounts')
-      .select('id')
-      .eq('slug', accountSlug)
-      .single();
-
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
-    // Build query to get projects
+    // For super-admin, get all projects without trying to join users table
     const query = client
       .from('projects')
       .select(`
@@ -114,16 +86,9 @@ async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
         app_url,
         project_members (
           user_id,
-          role,
-          auth:users (
-            id,
-            email,
-            raw_app_meta_data,
-            user_metadata
-          )
+          role
         )
-      `)
-      .eq('account_id', account.id);
+      `);
 
     const { data, error } = await query;
 
@@ -132,7 +97,7 @@ async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
       throw error;
     }
 
-    console.log('Query result:', { accountId: account.id, projectsFound: data?.length });
+    console.log('Query result:', data);
 
     const projects = (data as unknown as DatabaseProject[]).map(project => ({
       ...project,
@@ -141,15 +106,15 @@ async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
         role: member.role,
         created_at: project.created_at,
         updated_at: project.updated_at,
-        name: member.auth?.user_metadata?.name ?? '',
-        email: member.auth?.email ?? '',
-        avatar_url: member.auth?.user_metadata?.avatar_url
+        name: '', // We don't have access to user details
+        email: '',
+        avatar_url: undefined
       }))
     }));
 
     return {
       projects,
-      userRole: 'admin', // For super-admin, always return admin role
+      userRole: 'admin', // For super-admin, just return admin role
       isSuperAdmin
     };
   } catch (error) {
@@ -162,8 +127,8 @@ async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
   }
 }
 
-export default function ProjectsPage({ params }: PageProps) {
-  const { projects = [], userRole = 'member' } = use(fetchProjects(params.account));
+export default function ProjectsPage() {
+  const { projects = [], userRole = 'member' } = use(fetchProjects());
   const hasProjects = Array.isArray(projects) && projects.length > 0;
 
   return (
