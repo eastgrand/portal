@@ -148,7 +148,7 @@ export default function ProjectsPage() {
         <div className="mb-4 flex justify-end">
           <CreateProjectDialog>
             <EmptyStateButton>
-              <Trans i18nKey="projects:createNew" />
+              <Trans i18nKey="New Project" />
             </EmptyStateButton>
           </CreateProjectDialog>
         </div>
@@ -156,16 +156,16 @@ export default function ProjectsPage() {
         {!hasProjects ? (
           <EmptyState>
             <EmptyStateHeading>
-              <Trans i18nKey="projects:emptyState.title" />
+              <Trans i18nKey="Projects" />
             </EmptyStateHeading>
             
             <EmptyStateText>
-              <Trans i18nKey="projects:emptyState.description" />
+              <Trans i18nKey="No projects yet" />
             </EmptyStateText>
             
             <CreateProjectDialog>
               <EmptyStateButton>
-                <Trans i18nKey="projects:createNew" />
+                <Trans i18nKey="New Project" />
               </EmptyStateButton>
             </CreateProjectDialog>
           </EmptyState>
