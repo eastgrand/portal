@@ -15,6 +15,12 @@ import ProjectsList from '../../(user)/_components/projects-list';
 
 type ProjectRole = 'owner' | 'admin' | 'member';
 
+interface PageProps {
+  params: {
+    account: string;
+  };
+}
+
 interface Project {
   id: string;
   name: string;
@@ -58,7 +64,7 @@ interface DatabaseProject {
   }>;
 }
 
-async function fetchProjects(): Promise<ProjectsData> {
+async function fetchProjects(accountSlug: string): Promise<ProjectsData> {
   const client = getSupabaseServerComponentClient();
   
   try {
@@ -73,8 +79,19 @@ async function fetchProjects(): Promise<ProjectsData> {
     const isSuperAdmin = user.app_metadata?.role === 'super-admin';
     console.log('Is Super Admin:', isSuperAdmin);
 
-    // For super-admin, get all projects without trying to join users table
-    const query = client
+    // First, get the account ID from the slug
+    const { data: account } = await client
+      .from('accounts')
+      .select('id')
+      .eq('slug', accountSlug)
+      .single();
+
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    // Query to get all projects for this account
+    let query = client
       .from('projects')
       .select(`
         id,
@@ -88,7 +105,13 @@ async function fetchProjects(): Promise<ProjectsData> {
           user_id,
           role
         )
-      `);
+      `)
+      .eq('account_id', account.id);
+
+    // If not super-admin, also filter by project membership
+    if (!isSuperAdmin) {
+      query = query.eq('project_members.user_id', user.id);
+    }
 
     const { data, error } = await query;
 
@@ -97,7 +120,7 @@ async function fetchProjects(): Promise<ProjectsData> {
       throw error;
     }
 
-    console.log('Query result:', data);
+    console.log('Query result:', { accountId: account.id, projectsFound: data?.length });
 
     const projects = (data as unknown as DatabaseProject[]).map(project => ({
       ...project,
@@ -127,8 +150,8 @@ async function fetchProjects(): Promise<ProjectsData> {
   }
 }
 
-export default function ProjectsPage() {
-  const { projects = [], userRole = 'member' } = use(fetchProjects());
+export default function ProjectsPage({ params }: PageProps) {
+  const { projects = [], userRole = 'member' } = use(fetchProjects(params.account));
   const hasProjects = Array.isArray(projects) && projects.length > 0;
 
   return (
