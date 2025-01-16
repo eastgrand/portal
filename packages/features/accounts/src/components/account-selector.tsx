@@ -98,9 +98,9 @@ export function AccountSelector({
     return userRole === 'super-admin';
   }, [userRole]);
 
-  const canCreateTeam = isSuperAdmin;
-
-  console.log('Can create team:', canCreateTeam); // Debug log
+  const canCreateTeam = useMemo(() => {
+    return isSuperAdmin && features.enableTeamCreation;
+  }, [isSuperAdmin, features.enableTeamCreation]);
 
   const value = useMemo(() => {
     return selectedAccount ?? 'personal';
@@ -213,7 +213,7 @@ export function AccountSelector({
             <CommandList>
               <CommandGroup>
                 <CommandItem
-                  onSelect={() => onAccountChange(undefined)}
+                  onSelect={() => handleAccountSelect('personal')}
                   value={'personal'}
                 >
                   <PersonalAccountAvatar pictureUrl={pictureUrl} />
@@ -276,39 +276,40 @@ export function AccountSelector({
                   ))}
                 </CommandGroup>
               </If>
+
+              {canCreateTeam && (
+                <>
+                  <CommandSeparator />
+                  <div className={'p-1'}>
+                    <Button
+                      data-test={'create-team-account-trigger'}
+                      variant="ghost"
+                      size={'sm'}
+                      className="w-full justify-start text-sm font-normal"
+                      onClick={() => {
+                        setIsCreatingAccount(true);
+                        setOpen(false);
+                      }}
+                    >
+                      <Plus className="mr-3 h-4 w-4" />
+                      <span>
+                        <Trans i18nKey={'teams:createTeam'} />
+                      </span>
+                    </Button>
+                  </div>
+                </>
+              )}
             </CommandList>
           </Command>
-
-          <Separator />
-
-          <If condition={canCreateTeam}>
-            <div className={'p-1'}>
-              <Button
-                data-test={'create-team-account-trigger'}
-                variant="ghost"
-                size={'sm'}
-                className="w-full justify-start text-sm font-normal"
-                onClick={() => {
-                  setIsCreatingAccount(true);
-                  setOpen(false);
-                }}
-              >
-                <Plus className="mr-3 h-4 w-4" />
-                <span>
-                  <Trans i18nKey={'teams:createTeam'} />
-                </span>
-              </Button>
-            </div>
-          </If>
         </PopoverContent>
       </Popover>
 
-      <If condition={canCreateTeam}>
+      {canCreateTeam && (
         <CreateTeamAccountDialog
           isOpen={isCreatingAccount}
           setIsOpen={setIsCreatingAccount}
         />
-      </If>
+      )}
     </>
   );
 }
