@@ -117,7 +117,7 @@ export function AccountSelector({
 
   // Determine permissions based on role
   const canInteractWithTeams = true;
-  const canCreateTeam = isSuperAdmin || (features.enableTeamCreation && (userRole === 'admin' || userRole === 'owner'));
+  const canCreateTeam = isSuperAdmin;
 
   const handleAccountSelect = (currentValue: string) => {
     setOpen(false);
@@ -291,7 +291,6 @@ export function AccountSelector({
                 }}
               >
                 <Plus className="mr-3 h-4 w-4" />
-
                 <span>
                   <Trans i18nKey={'teams:createTeam'} />
                 </span>
