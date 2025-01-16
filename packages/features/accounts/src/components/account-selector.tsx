@@ -69,8 +69,9 @@ export function AccountSelector({
   );
 
   // Determine permissions based on role
-  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin';
-  const canCreateTeam = userRole === 'admin';
+  const isSuperAdmin = user?.app_metadata?.role === 'super-admin';
+  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
+  const canCreateTeam = userRole === 'admin' || isSuperAdmin;
 
   const value = useMemo(() => {
     return selectedAccount ?? 'personal';
