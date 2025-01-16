@@ -31,6 +31,17 @@ import { cn } from '@kit/ui/utils';
 import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
 import { usePersonalAccountData } from '../hooks/use-personal-account-data';
 
+function UserAvatar(props: { pictureUrl?: string }) {
+  return (
+    <Avatar className={'h-6 w-6 rounded-sm'}>
+      <AvatarImage src={props.pictureUrl} />
+      <AvatarFallback>
+        <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
+      </AvatarFallback>
+    </Avatar>
+  );
+}
+
 export function AccountSelector({
   className,
   user,
@@ -86,26 +97,38 @@ export function AccountSelector({
     return selectedAccount ?? 'personal';
   }, [selectedAccount]);
 
-  const selected = accounts.find((account) => account.value === value);
   const pictureUrl = personalAccountData?.picture_url;
 
-  const Icon = (props: { item: string }) => {
+  const PersonalAccountAvatar = () => (
+    pictureUrl ? (
+      <UserAvatar pictureUrl={pictureUrl} />
+    ) : (
+      <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
+    )
+  );
+
+  const Icon = ({ item }: { item: string }) => {
     return (
       <CheckCircle
         className={cn(
           'ml-auto h-4 w-4',
-          value === props.item ? 'opacity-100' : 'opacity-0',
+          value === item ? 'opacity-100' : 'opacity-0',
         )}
       />
     );
   };
 
-  const PersonalAccountAvatar = () =>
-    pictureUrl ? (
-      <UserAvatar pictureUrl={pictureUrl} />
-    ) : (
-      <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
-    );
+  const handleAccountSelect = (currentValue: string) => {
+    if (!canInteractWithTeams) return;
+    setOpen(false);
+
+    if (currentValue && onAccountChange) {
+      onAccountChange(currentValue);
+      window.location.href = `/accounts/${currentValue}/projects`;
+    }
+  };
+
+  const selected = accounts.find((account) => account.value === value);
 
   return (
     <>
@@ -221,13 +244,7 @@ export function AccountSelector({
                       )}
                       key={account.value}
                       value={account.value ?? ''}
-                      onSelect={(currentValue) => {
-                        if (!canInteractWithTeams) return;
-                        setOpen(false);
-                        if (onAccountChange) {
-                          onAccountChange(currentValue);
-                        }
-                      }}
+                      onSelect={handleAccountSelect}
                     >
                       <div className={'flex items-center'}>
                         <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
@@ -258,7 +275,7 @@ export function AccountSelector({
 
           <Separator />
 
-          <If condition={features.enableTeamCreation && canCreateTeam}>
+          <If condition={isSuperAdmin || (features.enableTeamCreation && canCreateTeam)}>
             <div className={'p-1'}>
               <Button
                 data-test={'create-team-account-trigger'}
@@ -281,20 +298,12 @@ export function AccountSelector({
         </PopoverContent>
       </Popover>
 
-      <If condition={features.enableTeamCreation && canCreateTeam}>
+      <If condition={isSuperAdmin || (features.enableTeamCreation && canCreateTeam)}>
         <CreateTeamAccountDialog
           isOpen={isCreatingAccount}
           setIsOpen={setIsCreatingAccount}
         />
       </If>
     </>
-  );
-}
-
-function UserAvatar(props: { pictureUrl?: string }) {
-  return (
-    <Avatar className={'h-6 w-6 rounded-sm'}>
-      <AvatarImage src={props.pictureUrl} />
-    </Avatar>
   );
 }
