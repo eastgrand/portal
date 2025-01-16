@@ -50,11 +50,11 @@ async function SignInPage({ searchParams }: SignInPageProps) {
       />
 
       <div className={'flex justify-center'}>
-        <Button asChild variant={'link'} size={'sm'}>
+      {/*  <Button asChild variant={'link'} size={'sm'}>
           <Link href={signUpPath}>
             <Trans i18nKey={'auth:doNotHaveAccountYet'} />
           </Link>
-        </Button>
+        </Button> */}
       </div>
     </>
   );
