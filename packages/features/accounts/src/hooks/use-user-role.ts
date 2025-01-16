@@ -1,15 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { getSupabaseServerAdminClient } from '../../../../supabase/src/clients/server-admin-client';
+import { useSupabase } from '../../../../supabase/src/hooks/use-supabase';
 
 export function useUserRole(userId: string) {
+  const client = useSupabase();
+  
   return useQuery({
     queryKey: ['user-role', userId],
     queryFn: async () => {
-      const { data, error } = await getSupabaseServerAdminClient()
-        .auth.admin.getUserById(userId);
-
+      const { data: { user }, error } = await client.auth.admin.getUserById(userId);
       if (error) throw error;
-      return data?.user?.role;
+      return user?.role;
     },
   });
 } 
