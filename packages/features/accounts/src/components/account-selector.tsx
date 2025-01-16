@@ -96,12 +96,15 @@ export function AccountSelector({
 
   // Determine permissions based on role
   const isSuperAdmin = useMemo(() => {
-    console.log('User role:', user?.raw_app_meta_data?.role); // Keep debug log for now
-    return user?.raw_app_meta_data?.role === 'super-admin';
+    const role = user?.raw_app_meta_data?.role;
+    console.log('User role:', role, 'Is super-admin?:', role === 'super-admin');
+    return role === 'super-admin';
   }, [user]);
 
   // Only allow super-admin to create teams
-  const canCreateTeam = isSuperAdmin;
+  const canCreateTeam = isSuperAdmin || (features.enableTeamCreation && userRole === 'admin');
+
+  console.log('Can create team:', canCreateTeam); // Debug log
 
   const value = useMemo(() => {
     return selectedAccount ?? 'personal';
