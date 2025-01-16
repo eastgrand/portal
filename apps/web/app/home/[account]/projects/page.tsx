@@ -13,6 +13,8 @@ import { HomeLayoutPageHeader } from '../../(user)/_components/home-page-header'
 import { CreateProjectDialog } from '../_components/create-project-dialog';
 import ProjectsList from '../../(user)/_components/projects-list';
 
+type ProjectRole = 'owner' | 'admin' | 'member';
+
 interface Project {
   id: string;
   name: string;
@@ -23,11 +25,11 @@ interface Project {
   app_url: string;
   project_members: {
     user_id: string;
-    role: 'owner' | 'admin' | 'member';
+    role: ProjectRole;
   }[];
   members: {
     user_id: string;
-    role: UserRole;
+    role: ProjectRole;
     created_at: string;
     updated_at: string;
     name: string;
@@ -36,11 +38,10 @@ interface Project {
   }[];
 }
 
-type UserRole = 'owner' | 'admin' | 'member';
-
 interface ProjectsData {
   projects: Project[];
-  userRole: UserRole;
+  userRole: ProjectRole;
+  isSuperAdmin: boolean;
 }
 
 interface DatabaseProject {
@@ -53,10 +54,13 @@ interface DatabaseProject {
   app_url: string;
   project_members: Array<{
     user_id: string;
-    role: UserRole;
+    role: ProjectRole;
     auth: {
       id: string;
       email: string;
+      raw_app_meta_data: {
+        role?: string;
+      } | null;
       user_metadata: {
         name?: string;
         avatar_url?: string;
@@ -77,8 +81,10 @@ async function fetchProjects(): Promise<ProjectsData> {
       throw new Error('User not authenticated');
     }
 
-    // Fetch projects with members and their profiles
-    const { data, error } = await client
+    const isSuperAdmin = user.app_metadata?.role === 'super-admin';
+
+    // Build query based on user role
+    let query = client
       .from('projects')
       .select(`
         id,
@@ -88,17 +94,24 @@ async function fetchProjects(): Promise<ProjectsData> {
         updated_at,
         description,
         app_url,
-        project_members:project_members (
+        project_members (
           user_id,
           role,
-          auth:auth.users (
+          auth:users (
             id,
             email,
+            raw_app_meta_data,
             user_metadata
           )
         )
-      `)
-      .eq('project_members.user_id', user.id);
+      `);
+
+    // If not super-admin, only show projects where user is a member
+    if (!isSuperAdmin) {
+      query = query.eq('project_members.user_id', user.id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Database error:', error);
@@ -113,22 +126,26 @@ async function fetchProjects(): Promise<ProjectsData> {
         created_at: project.created_at,
         updated_at: project.updated_at,
         name: member.auth?.user_metadata?.name ?? '',
-        email: member.auth?.email || '',
+        email: member.auth?.email ?? '',
         avatar_url: member.auth?.user_metadata?.avatar_url
       }))
     }));
 
-    const userRole = projects[0]?.project_members[0]?.role ?? 'member';
+    const userProjectRole = projects[0]?.project_members.find(
+      member => member.user_id === user.id
+    )?.role ?? 'member';
 
     return {
       projects,
-      userRole
+      userRole: userProjectRole,
+      isSuperAdmin
     };
   } catch (error) {
     console.error('Error in fetchProjects:', error);
     return {
       projects: [],
-      userRole: 'member'
+      userRole: 'member',
+      isSuperAdmin: false
     };
   }
 }
@@ -148,7 +165,7 @@ export default function ProjectsPage() {
         <div className="mb-4 flex justify-end">
           <CreateProjectDialog>
             <EmptyStateButton>
-              <Trans i18nKey="New Project" />
+              <Trans i18nKey="projects:createNew" />
             </EmptyStateButton>
           </CreateProjectDialog>
         </div>
@@ -156,16 +173,16 @@ export default function ProjectsPage() {
         {!hasProjects ? (
           <EmptyState>
             <EmptyStateHeading>
-              <Trans i18nKey="Projects" />
+              <Trans i18nKey="projects:emptyState.title" />
             </EmptyStateHeading>
             
             <EmptyStateText>
-              <Trans i18nKey="No projects yet" />
+              <Trans i18nKey="projects:emptyState.description" />
             </EmptyStateText>
             
             <CreateProjectDialog>
               <EmptyStateButton>
-                <Trans i18nKey="New Project" />
+                <Trans i18nKey="projects:createNew" />
               </EmptyStateButton>
             </CreateProjectDialog>
           </EmptyState>
