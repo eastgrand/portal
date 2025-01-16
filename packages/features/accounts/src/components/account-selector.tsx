@@ -42,6 +42,14 @@ function UserAvatar(props: { pictureUrl?: string }) {
   );
 }
 
+const PersonalAccountAvatar = ({ pictureUrl }: { pictureUrl: string | null | undefined }) => (
+  pictureUrl ? (
+    <UserAvatar pictureUrl={pictureUrl} />
+  ) : (
+    <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
+  )
+);
+
 export function AccountSelector({
   className,
   user,
@@ -96,14 +104,6 @@ export function AccountSelector({
 
   const pictureUrl = personalAccountData?.picture_url;
 
-  const PersonalAccountAvatar = () => (
-    pictureUrl ? (
-      <UserAvatar pictureUrl={pictureUrl} />
-    ) : (
-      <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
-    )
-  );
-
   const Icon = ({ item }: { item: string }) => {
     return (
       <CheckCircle
@@ -156,7 +156,7 @@ export function AccountSelector({
               condition={selected}
               fallback={
                 <span className={'flex max-w-full items-center space-x-4'}>
-                  <PersonalAccountAvatar />
+                  <PersonalAccountAvatar pictureUrl={pictureUrl} />
 
                   <span
                     className={cn('truncate', {
@@ -213,7 +213,7 @@ export function AccountSelector({
                   onSelect={() => onAccountChange(undefined)}
                   value={'personal'}
                 >
-                  <PersonalAccountAvatar />
+                  <PersonalAccountAvatar pictureUrl={pictureUrl} />
 
                   <span className={'ml-2'}>
                     <Trans i18nKey={'teams:personalAccount'} />
