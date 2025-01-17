@@ -59,6 +59,7 @@ async function fetchUserAccount(userId: string): Promise<{
   email: string;
 } | null> {
   const client = getSupabaseServerComponentClient();
+  console.log('Fetching user account for ID:', userId);
   
   try {
     const { data, error } = await client
@@ -66,9 +67,16 @@ async function fetchUserAccount(userId: string): Promise<{
       .select()
       .eq('id', userId)
       .single();
+    
+    console.log('User account data:', data);
       
-    if (error || !data?.name || !data?.email) {
+    if (error) {
       console.error('Error fetching user account:', error);
+      return null;
+    }
+
+    if (!data?.name || !data?.email) {
+      console.log('Missing required user account fields:', data);
       return null;
     }
 
@@ -85,6 +93,7 @@ async function fetchUserAccount(userId: string): Promise<{
 
 async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> {
   const client = getSupabaseServerComponentClient();
+  console.log('Fetching members for project:', projectId);
   
   try {
     const { data: memberData, error: memberError } = await client
@@ -92,15 +101,23 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
       .select()
       .eq('project_id', projectId);
 
-    if (memberError || !memberData) {
+    if (memberError) {
       console.error('Error fetching project members:', memberError);
       return [];
     }
 
+    if (!memberData) {
+      console.log('No member data found for project:', projectId);
+      return [];
+    }
+
+    console.log('Found member records:', memberData.length);
+    
     const members: ProjectMember[] = [];
     const projectMembers = memberData as ProjectMemberRow[];
 
     for (const member of projectMembers) {
+      console.log('Processing member:', member);
       const userAccount = await fetchUserAccount(member.user_id);
       
       if (userAccount) {
@@ -113,9 +130,12 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
           email: userAccount.email,
           avatar_url: undefined
         });
+      } else {
+        console.log('Could not fetch user account for member:', member.user_id);
       }
     }
 
+    console.log('Final processed members:', members);
     return members;
   } catch (error) {
     console.error('Error in fetchProjectMembers:', error);
@@ -125,43 +145,75 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
 
 async function fetchProjects(): Promise<Project[]> {
   const client = getSupabaseServerComponentClient();
+  console.log('Starting fetchProjects');
   
   try {
-    const { data: { user } } = await client.auth.getUser();
+    // Step 1: Get current user
+    const { data: { user }, error: userError } = await client.auth.getUser();
+    console.log('Current user:', user?.id);
+    
+    if (userError) {
+      console.error('Error getting user:', userError);
+      return [];
+    }
+    
     if (!user) {
       console.log('No user found');
       return [];
     }
 
+    // Step 2: Get project memberships
+    console.log('Fetching project memberships for user:', user.id);
     const { data: memberData, error: memberError } = await client
       .from('project_members')
-      .select()
+      .select('*')
       .eq('user_id', user.id);
 
-    if (memberError || !memberData) {
-      console.error('Error fetching user projects:', memberError);
+    if (memberError) {
+      console.error('Error fetching project memberships:', memberError);
+      return [];
+    }
+
+    console.log('Project memberships found:', memberData?.length);
+    console.log('Raw membership data:', memberData);
+
+    if (!memberData || memberData.length === 0) {
+      console.log('No project memberships found');
       return [];
     }
 
     const userProjects = memberData as ProjectMemberRow[];
-    if (userProjects.length === 0) {
-      return [];
-    }
 
+    // Step 3: Get project IDs
     const projectIds = userProjects.map(up => up.project_id);
+    console.log('Project IDs:', projectIds);
+
+    // Step 4: Get projects
+    console.log('Fetching projects with IDs:', projectIds);
     const { data: rawProjects, error: projectsError } = await client
       .from('projects')
-      .select()
+      .select('*')
       .in('id', projectIds);
 
-    if (projectsError || !rawProjects) {
+    if (projectsError) {
       console.error('Error fetching projects:', projectsError);
       return [];
     }
 
+    console.log('Raw projects found:', rawProjects?.length);
+    console.log('Raw project data:', rawProjects);
+
+    if (!rawProjects) {
+      console.log('No projects data returned');
+      return [];
+    }
+
+    // Step 5: Process projects and fetch members
+    console.log('Processing projects and fetching members');
     const projectsData = rawProjects as ProjectRow[];
     const projects: Project[] = await Promise.all(
       projectsData.map(async (project): Promise<Project> => {
+        console.log('Processing project:', project.id);
         const members = await fetchProjectMembers(project.id);
         const project_members = members.map(m => ({
           user_id: m.user_id,
@@ -182,6 +234,7 @@ async function fetchProjects(): Promise<Project[]> {
       })
     );
 
+    console.log('Final processed projects:', projects);
     return projects;
 
   } catch (error) {
