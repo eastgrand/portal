@@ -46,7 +46,7 @@ export function AccountSelector({
   userId,
   collapsed = false,
   collisionPadding = 20,
-  userRole = 'member',
+  role = 'member',
   onAccountChange,
 }: {
   className?: string;
@@ -68,7 +68,7 @@ export function AccountSelector({
   userId?: string;
   collapsed?: boolean;
   collisionPadding?: number;
-  userRole?: 'member' | 'owner' | 'admin';
+  role?: 'member' | 'owner' | 'admin';
   onAccountChange: (value: string | undefined) => void;
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -80,9 +80,9 @@ export function AccountSelector({
     account,
   );
 
-  // Determine permissions based on role
-  const isSuperAdmin = user?.auth?.user?.raw_app_meta_data?.role === 'super-admin';
-  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
+  const authUserRole = user?.auth?.user?.raw_app_meta_data?.role;
+  const isSuperAdmin = authUserRole === 'super-admin';
+  const canInteractWithTeams = role === 'owner' || role === 'admin' || isSuperAdmin;
 
   const value = useMemo(() => {
     return selectedAccount ?? 'personal';
@@ -93,24 +93,24 @@ export function AccountSelector({
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
-      if (!canInteractWithTeams) {
-        console.log('User cannot interact with teams');
-        return;
-      }
+      console.log('Account selected:', selectedValue);
+      console.log('Current user role:', authUserRole);
       
       setOpen(false);
       
       if (selectedValue === 'personal') {
+        console.log('Navigating to personal projects');
         router.push('/home/projects');
       } else {
-        // Navigate to team-specific URL
         const teamPath = `/home/${selectedValue}/projects`;
-        console.log('Navigating to team:', teamPath);
+        console.log('Navigating to team path:', teamPath);
         router.push(teamPath);
       }
       
       if (onAccountChange) {
-        onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
+        const newValue = selectedValue === 'personal' ? undefined : selectedValue;
+        console.log('Calling onAccountChange with:', newValue);
+        onAccountChange(newValue);
       }
     } catch (error) {
       console.error('Error during account selection:', error);
