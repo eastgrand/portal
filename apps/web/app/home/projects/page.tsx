@@ -14,6 +14,12 @@ import { getUserRole } from '../[account]/projects/_lib/server/users/users.servi
 // ProjectsList component roles
 type ProjectListRole = 'owner' | 'admin' | 'member';
 
+// Props interface for ProjectsList component
+interface ProjectsListProps {
+  projects: Project[];
+  userRole: ProjectListRole;
+}
+
 interface Project {
   id: string;
   name: string;
