@@ -80,15 +80,35 @@ export function AccountSelector({
     account,
   );
 
-  const authUserRole = user?.auth?.user?.raw_app_meta_data?.role;
+  // Fixed property access path and added logging
+  const authUserRole = user?.auth.user.raw_app_meta_data?.role;
+  console.log('Auth user data:', {
+    fullAuth: user?.auth,
+    metaData: user?.auth.user.raw_app_meta_data,
+    role: authUserRole
+  });
+
   const isSuperAdmin = authUserRole === 'super-admin';
   const hasTeamRole = role === 'owner' || role === 'admin';
   const canInteractWithTeams = isSuperAdmin || hasTeamRole;
 
+  console.log('Permission checks:', {
+    authUserRole,
+    isSuperAdmin,
+    hasTeamRole,
+    canInteractWithTeams,
+    role
+  });
+
   const handleAccountSelection = (selectedValue: string) => {
     try {
       if (!canInteractWithTeams) {
-        console.log('User cannot interact with teams');
+        console.log('User cannot interact with teams:', {
+          authUserRole,
+          isSuperAdmin,
+          hasTeamRole,
+          canInteractWithTeams
+        });
         return;
       }
       
