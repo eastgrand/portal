@@ -101,11 +101,12 @@ export function AccountSelector({
       
       setOpen(false);
       
+      // Log the current pathname before navigation
       if (selectedValue === 'personal') {
         console.log('Navigating to personal projects');
-        router.push('/projects');
+        router.push('/home/projects');
       } else {
-        const teamPath = `/${selectedValue}/projects`;
+        const teamPath = `/home/${selectedValue}/projects`;
         console.log('Navigating to team path:', teamPath);
         router.push(teamPath);
       }
