@@ -82,14 +82,16 @@ export function AccountSelector({
     account,
   );
 
-  // Handle permissions based on role
-  const hasTeamRole = role === 'owner' || role === 'admin';
+  // Check for super-admin first, then fall back to regular role permissions
+  const isSuperAdmin = user.auth.user.raw_app_meta_data.role === 'super-admin';
+  const hasTeamRole = isSuperAdmin || role === 'owner' || role === 'admin';
   const canInteractWithTeams = hasTeamRole;
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
       if (!canInteractWithTeams) {
         console.log('User cannot interact with teams:', {
+          isSuperAdmin,
           role,
           hasTeamRole,
           canInteractWithTeams
