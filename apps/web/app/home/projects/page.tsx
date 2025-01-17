@@ -1,17 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { use } from 'react';
-import { headers } from 'next/headers';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
-import { Button } from '@kit/ui/button';
-import { If } from '@kit/ui/if';
-import { Trans } from '@kit/ui/trans';
-import { PageBody } from '@kit/ui/page';
 import ProjectsList from '../(user)/_components/projects-list';
-import { EmptyStateButton } from '@kit/ui/empty-state';
-import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
 
-// ProjectsList component roles
 type ProjectListRole = 'owner' | 'admin' | 'member';
 
 interface Project {
@@ -96,16 +86,6 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
           email: userAccount.email,
           avatar_url: undefined
         });
-      } else {
-        members.push({
-          user_id: member.user_id,
-          role: 'member',
-          created_at: member.created_at,
-          updated_at: member.updated_at,
-          name: 'Unknown User',
-          email: 'no-email',
-          avatar_url: undefined
-        });
       }
     }
 
@@ -116,35 +96,20 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
   }
 }
 
-async function fetchProjects(): Promise<{
-  projects: Project[];
-  isSuperAdmin: boolean;
-  projectRole: ProjectListRole;
-}> {
+async function fetchProjects(): Promise<Project[]> {
   const client = getSupabaseServerComponentClient();
-  const defaultResult = {
-    projects: [] as Project[],
-    isSuperAdmin: false,
-    projectRole: 'member' as ProjectListRole
-  };
   
   try {
-    // Get current user
     const { data: { user } } = await client.auth.getUser();
     if (!user) {
       console.log('No user found');
-      return defaultResult;
+      return [];
     }
-    
-    // Get system role (for super-admin check)
-    const systemRole = await getUserRole(client as any);
-    const isSuperAdmin = systemRole === 'super-admin';
-    
-    // If super-admin, fetch all projects
-    if (isSuperAdmin) {
-      const { data: projectsData, error: projectsError } = await client
-        .from('projects')
-        .select(`
+
+    const { data: memberProjects, error: memberError } = await client
+      .from('project_members')
+      .select(`
+        project:projects (
           id,
           name,
           account_id,
@@ -156,68 +121,40 @@ async function fetchProjects(): Promise<{
             user_id,
             role
           )
-        `);
-
-      if (projectsError || !projectsData) {
-        console.error('Error fetching projects:', projectsError);
-        return defaultResult;
-      }
-
-      const projectsWithMembers = await Promise.all(
-        projectsData.map(async (project) => ({
-          ...project,
-          members: await fetchProjectMembers(project.id)
-        }))
-      );
-
-      return {
-        projects: projectsWithMembers,
-        isSuperAdmin: true,
-        projectRole: 'admin'
-      };
-    }
-
-    // For regular users, fetch all projects where they are a member
-    console.log('Fetching projects for user ID:', user.id);
-    
-    const query = client
-      .from('projects')
-      .select(`
-        id,
-        name,
-        account_id,
-        created_at,
-        updated_at,
-        description,
-        app_url,
-        project_members!inner (
-          user_id,
-          role
         )
       `)
-      .eq('project_members.user_id', user.id);
+      .eq('user_id', user.id);
 
-    console.log('Query:', query); // Just log the query object
-
-    const { data: projectsData, error: projectsError } = await query;
-
-    if (projectsError) {
-      console.error('Error fetching projects:', projectsError);
-      return defaultResult;
+    if (memberError || !memberProjects) {
+      console.error('Error fetching member projects:', memberError);
+      return [];
     }
 
-    console.log('Raw projects data:', projectsData);
-    console.log('Number of projects found:', projectsData?.length ?? 0);
+    // First cast to unknown, then to our expected type for safety
+    const projectsData = memberProjects as unknown as Array<{
+      project: {
+        id: string;
+        name: string;
+        account_id: string;
+        created_at: string;
+        updated_at: string;
+        description: string | null;
+        app_url: string;
+        project_members: {
+          user_id: string;
+          role: ProjectListRole;
+        }[];
+      } | null;
+    }>;
 
-    if (!projectsData?.length) {
-      console.log('No projects found for user');
-      return defaultResult;
-    }
+    const validProjects = projectsData.filter(
+      (item): item is typeof projectsData[number] & { project: NonNullable<typeof projectsData[number]['project']> } => 
+        item.project !== null
+    );
 
-    const projectsWithMembers = await Promise.all(
-      projectsData.map(async (project) => {
+    const projects = await Promise.all(
+      validProjects.map(async ({ project }): Promise<Project> => {
         const members = await fetchProjectMembers(project.id);
-        console.log(`Members for project ${project.id}:`, members);
         return {
           ...project,
           members
@@ -225,31 +162,23 @@ async function fetchProjects(): Promise<{
       })
     );
 
-    console.log('Final processed projects:', projectsWithMembers);
-
-    return {
-      projects: projectsWithMembers,
-      isSuperAdmin: false,
-      projectRole: 'member'
-    };
+    return projects;
 
   } catch (error) {
     console.error('Error in fetchProjects:', error);
-    return defaultResult;
+    return [];
   }
 }
 
 export default function ProjectsPage() {
   console.log('ProjectsPage rendering');
-  const result = use(fetchProjects());
-  console.log('fetchProjects result:', result);
+  const projects = use(fetchProjects());
+  console.log('Projects fetched:', projects);
   
-  const { projects, isSuperAdmin, projectRole } = result;
-
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
       <div className="px-8 py-2 text-sm text-gray-500">
-        Debug: {projects.length} projects, Role: {projectRole}, SuperAdmin: {String(isSuperAdmin)}
+        Debug: {projects.length} projects found
       </div>
       
       <div className="px-8 py-6">
@@ -264,8 +193,8 @@ export default function ProjectsPage() {
         <div className="bg-white rounded-lg border">
           <div className="p-6">
             <ProjectsList 
-              projects={projects} 
-              userRole={isSuperAdmin ? 'admin' : projectRole} 
+              projects={projects}
+              userRole="member"
             />
           </div>
         </div>
