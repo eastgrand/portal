@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 // app/home/projects/page.tsx
 import { use } from 'react';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
@@ -36,12 +37,22 @@ async function fetchPersonalProjects() {
   
   try {
     const { data: { user }, error: userError } = await client.auth.getUser();
-    if (userError || !user) {
+    if (userError ?? !user) {
       console.error('Auth error:', userError);
       return { projects: [] as Project[], userRole: 'member' as const, user: null };
     }
 
-    // Query projects where user is a member
+    const isSuperAdmin = user.app_metadata?.role === 'super-admin';
+
+    // Get all accounts for the user
+    const { data: userAccounts } = await client
+      .from('account_users')
+      .select('account_id')
+      .eq('user_id', user.id);
+
+    const accountIds = userAccounts?.map(a => a.account_id) ?? [];
+
+    // Get personal projects
     const { data: projectsData, error: projectsError } = await client
       .from('projects')
       .select(`
@@ -57,11 +68,11 @@ async function fetchPersonalProjects() {
           role
         )
       `)
-      .eq('project_members.user_id', user.id);
+      .eq('project_members.user_id', user.id)
+      .in('account_id', accountIds);
 
     if (projectsError) {
-      console.error('Error fetching projects:', projectsError);
-      return { projects: [] as Project[], userRole: 'member' as const, user };
+      throw new Error(`Failed to fetch projects: ${projectsError.message}`);
     }
 
     const projectsWithMembers = await Promise.all(
@@ -98,27 +109,39 @@ async function fetchPersonalProjects() {
       })
     );
 
-    const userRole = projectsData?.[0]?.project_members?.find(
-      member => member.user_id === user.id
-    )?.role ?? 'member';
+    // Get additional data needed for AccountSelector
+    const { data: accounts } = await client
+      .from('accounts')
+      .select('name, slug, picture_url')
+      .in('id', accountIds);
+
+    const accountsData = accounts?.map(account => ({
+      label: account.name,
+      value: account.slug,
+      image: account.picture_url
+    })) ?? [];
 
     return { 
-      projects: projectsWithMembers, 
-      userRole: userRole as ProjectRole,
-      user 
+      projects: projectsWithMembers,
+      userRole: isSuperAdmin ? 'admin' as const : 'member' as const,
+      user,
+      accounts: accountsData
     };
   } catch (error) {
     console.error('Error in fetchPersonalProjects:', error);
     return { 
       projects: [] as Project[], 
       userRole: 'member' as const,
-      user: null 
+      user: null,
+      accounts: []
     };
   }
 }
 
 export default function ProjectsPage() {
-  const { projects = [], userRole = 'member', user } = use(fetchPersonalProjects());
+  console.log('ProjectsPage rendering');
+  const data = use(fetchPersonalProjects());
+  console.log('ProjectsPage data:', data);
 
   return (
     <>
@@ -129,9 +152,9 @@ export default function ProjectsPage() {
 
       <PageBody>
         <ProjectsList 
-          projects={projects} 
-          userRole={userRole}
-          user={user ?? undefined}
+          projects={data.projects}
+          userRole={data.userRole}
+          user={data.user ?? undefined}
         />
       </PageBody>
     </>
