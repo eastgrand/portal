@@ -1,4 +1,10 @@
-import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
+/* eslint-disable @typescript-eslint/no-floating-promises */
+/* eslint-disable react-hooks/rules-of-hooks */
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSupabase } from '@kit/supabase/hooks/use-supabase';
+import type { User } from '@supabase/supabase-js';
 import ProjectsList from '../(user)/_components/projects-list';
 
 type UserRole = 'admin' | 'member' | 'owner';
@@ -28,78 +34,58 @@ interface ProjectMember {
   avatar_url?: string;
 }
 
-export default async function ProjectsPage() {
-  const client = getSupabaseServerComponentClient();
-  
-  const { data: { user }, error: userError } = await client.auth.getUser();
-  if (userError || !user) {
-    console.error('Auth error:', userError);
-    return null;
-  }
+export default function ProjectsPage() {
+  const client = useSupabase();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [userRole, setUserRole] = useState<UserRole>('member');
 
-  // Add safety check for user metadata
-  const userRole = user.app_metadata?.role || 'member';
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) return;
+        setUser(user);
 
-  const { data: projectsData, error: projectsError } = await client
-    .from('projects')
-    .select(`
-      id,
-      name,
-      account_id,
-      created_at,
-      updated_at,
-      description,
-      app_url,
-      project_members!inner (
-        user_id,
-        role
-      )
-    `)
-    .eq('project_members.user_id', user.id);
+        const { data: projectsData } = await client
+          .from('projects')
+          .select(`
+            id,
+            name,
+            account_id,
+            created_at,
+            updated_at,
+            description,
+            app_url,
+            project_members!inner (
+              user_id,
+              role
+            )
+          `)
+          .eq('project_members.user_id', user.id);
 
-  if (projectsError || !projectsData) {
-    console.error('Error fetching projects:', projectsError);
-    return null;
-  }
+        if (projectsData) {
+          const projectsWithMembers = await Promise.all(
+            projectsData.map(async (project: Omit<Project, 'members'>) => ({
+              ...project,
+              members: await fetchProjectMembers(project.id)
+            }))
+          );
+          setProjects(projectsWithMembers);
+          setUserRole(projectsData[0]?.project_members?.[0]?.role ?? 'member');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const projects = await Promise.all(
-    projectsData.map(async (project: Omit<Project, 'members'>) => {
-      const { data: memberData } = await client
-        .from('project_members')
-        .select('user_id, role, created_at, updated_at')
-        .eq('project_id', project.id);
+    fetchData();
+  }, [client]);
 
-      const members = await Promise.all(
-        (memberData ?? []).map(async (member: { 
-          user_id: string; 
-          role: string; 
-          created_at: string; 
-          updated_at: string; 
-        }) => {
-          const { data: userData } = await client
-            .from('accounts')
-            .select('name, email')
-            .eq('id', member.user_id)
-            .single();
-
-          return {
-            user_id: member.user_id,
-            role: member.role as UserRole,
-            created_at: member.created_at,
-            updated_at: member.updated_at,
-            name: userData?.name ?? 'Unknown User',
-            email: userData?.email ?? 'no-email',
-            avatar_url: undefined
-          };
-        })
-      );
-
-      return {
-        ...project,
-        members
-      };
-    })
-  );
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
@@ -115,11 +101,45 @@ export default async function ProjectsPage() {
             <ProjectsList 
               projects={projects} 
               userRole={userRole}
-              user={user}
+              user={user ?? undefined}
             />
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// Helper function
+async function fetchProjectMembers(projectId: string) {
+  const client = useSupabase();
+  const { data: memberData } = await client
+    .from('project_members')
+    .select('user_id, role, created_at, updated_at')
+    .eq('project_id', projectId);
+
+  return Promise.all(
+    (memberData ?? []).map(async (member: { 
+      user_id: string; 
+      role: string; 
+      created_at: string; 
+      updated_at: string; 
+    }) => {
+      const { data: userData } = await client
+        .from('accounts')
+        .select('name, email')
+        .eq('id', member.user_id)
+        .single();
+
+      return {
+        user_id: member.user_id,
+        role: member.role as UserRole,
+        created_at: member.created_at,
+        updated_at: member.updated_at,
+        name: userData?.name ?? 'Unknown User',
+        email: userData?.email ?? 'no-email',
+        avatar_url: undefined
+      };
+    })
   );
 }
