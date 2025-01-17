@@ -82,7 +82,8 @@ export function AccountSelector({
 
   const authUserRole = user?.auth?.user?.raw_app_meta_data?.role;
   const isSuperAdmin = authUserRole === 'super-admin';
-  const canInteractWithTeams = role === 'owner' || role === 'admin' || isSuperAdmin;
+  const hasTeamRole = role === 'owner' || role === 'admin';
+  const canInteractWithTeams = isSuperAdmin || hasTeamRole;
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
