@@ -82,10 +82,18 @@ export function AccountSelector({
     account,
   );
 
-  // Check for super-admin first, then fall back to regular role permissions
-  const isSuperAdmin = user.auth.user.raw_app_meta_data.role === 'super-admin';
+  // Debug user object and role structure
+  console.log('User object:', {
+    userAuth: user?.auth,
+    metaData: user?.auth?.user?.raw_app_meta_data,
+    role: user?.auth?.user?.raw_app_meta_data?.role,
+    providedRole: role
+  });
+
+  // Safely check for super-admin with optional chaining
+  const isSuperAdmin = user?.auth?.user?.raw_app_meta_data?.role === 'super-admin';
   const hasTeamRole = isSuperAdmin || role === 'owner' || role === 'admin';
-  const canInteractWithTeams = hasTeamRole;
+  const canInteractWithTeams = hasTeamRole || isSuperAdmin; // Ensure super-admin always has access
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
