@@ -1,266 +1,321 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Button } from "@kit/ui/button";
-import { Input } from "@kit/ui/input";
+import { useMemo, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
+import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
+import { CheckCircle, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@kit/ui/avatar';
+import { Button } from '@kit/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@kit/ui/table";
-import { Users, ExternalLink, Maximize2, X, Copy, Check } from "lucide-react";
-import MembersDialog from './members-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose
-} from "@kit/ui/dialog";
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@kit/ui/command';
+import { If } from '@kit/ui/if';
+import { Popover, PopoverContent, PopoverTrigger } from '@kit/ui/popover';
+import { Separator } from '@kit/ui/separator';
+import { Trans } from '@kit/ui/trans';
+import { cn } from '@kit/ui/utils';
 
-type ProjectListRole = 'owner' | 'admin' | 'member';
+import { CreateTeamAccountDialog } from '@kit/team-accounts/components';
 
-interface ProjectMember {
-  user_id: string;
-  role: ProjectListRole;
-  created_at: string;
-  updated_at: string;
-  name: string;
-  email: string;
-  avatar_url?: string;
-}
+type UserRole = 'owner' | 'admin' | 'member' | 'super-admin';
 
-interface Project {
-  id: string;
-  name: string;
-  account_id: string;
-  created_at: string;
-  updated_at: string;
-  description: string | null;
-  app_url: string;
-  project_members: {
-    user_id: string;
-    role: ProjectListRole;
-  }[];
-  members: ProjectMember[];
-}
-
-interface ProjectsListProps {
-  projects: Project[];
-  userRole: ProjectListRole;
-}
-
-interface ProjectIframeDialogProps {
-  appUrl: string;
-  children: React.ReactNode;
-}
-
-interface EmbedProjectDialogProps {
-  appUrl: string;
-  children: React.ReactNode;
-}
-
-const EmbedProjectDialog: React.FC<EmbedProjectDialogProps> = ({ appUrl, children }) => {
-  const [copied, setCopied] = useState(false);
-
-  const iframeCode = `<iframe
-  src="${appUrl}"
-  width="100%"
-  height="600"
-  frameborder="0"
-  allow="accelerometer; camera; encrypted-media; geolocation; microphone"
-></iframe>`;
-
-  const handleCopyCode = async () => {
-    await navigator.clipboard.writeText(iframeCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+interface ExtendedUser extends Omit<User, 'role'> {
+  role?: UserRole;
+  app_metadata: {
+    role?: UserRole;
   };
+}
+
+function SelectionIcon({ isSelected }: { isSelected: boolean }) {
+  return (
+    <CheckCircle
+      className={cn(
+        'ml-auto h-4 w-4',
+        isSelected ? 'opacity-100' : 'opacity-0',
+      )}
+    />
+  );
+}
+
+export function AccountSelector({
+  className,
+  user,
+  features,
+  account,
+  accounts = [], // Provide default empty array
+  selectedAccount,
+  collapsed = false,
+  collisionPadding = 20,
+  role = 'member',
+  onAccountChange,
+}: {
+  className?: string;
+  user: ExtendedUser;
+  account?: {
+    id: string | null;
+    name: string | null;
+    picture_url: string | null;
+  };
+  features: {
+    enableTeamCreation: boolean;
+  };
+  accounts: Array<{
+    label: string | null;
+    value: string | null;
+    image?: string | null;
+  }>;
+  selectedAccount?: string;
+  collapsed?: boolean;
+  collisionPadding?: number;
+  role: UserRole;
+  onAccountChange: (value: string | undefined) => void;
+}) {
+  const [open, setOpen] = useState<boolean>(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
+  const router = useRouter();
+  const { t } = useTranslation('teams');
+
+  const isSuperAdmin = role === 'super-admin' || 
+                      user?.role === 'super-admin' || 
+                      user?.app_metadata?.role === 'super-admin';
+                      
+  const hasTeamRole = isSuperAdmin || role === 'owner' || role === 'admin';
+  const canInteractWithTeams = Boolean(hasTeamRole);
+
+  const handleAccountSelection = useCallback((selectedValue: string) => {
+    try {
+      if (!selectedValue || !canInteractWithTeams) {
+        console.log('Invalid selection or user cannot interact with teams:', {
+          selectedValue,
+          role,
+          hasTeamRole,
+          canInteractWithTeams
+        });
+        return;
+      }
+      
+      setOpen(false);
+      
+      const isPersonal = selectedValue === 'personal';
+      const path = isPersonal ? '/home/projects' : `/home/${selectedValue}/projects`;
+      router.push(path);
+      
+      if (onAccountChange) {
+        onAccountChange(isPersonal ? undefined : selectedValue);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error during account selection:', errorMessage);
+    }
+  }, [canInteractWithTeams, hasTeamRole, onAccountChange, role, router]);
+
+  const value = useMemo(() => {
+    return selectedAccount ?? 'personal';
+  }, [selectedAccount]);
+
+  const selected = accounts.find((account) => account.value === value);
+  const pictureUrl = account?.picture_url;
+
+  const PersonalAccountAvatar = () => (
+    pictureUrl ? (
+      <UserAvatar pictureUrl={pictureUrl} />
+    ) : (
+      <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
+    )
+  );
+
+  const commandItems = useMemo(() => {
+    if (!Array.isArray(accounts)) return [];
+    
+    return accounts.map((account) => {
+      if (!account?.value) return null;
+      
+      return (
+        <CommandItem
+          key={account.value}
+          data-test={'account-selector-team'}
+          data-name={account.label}
+          data-slug={account.value}
+          className={cn(
+            'group my-1 flex justify-between transition-colors',
+            {
+              ['bg-muted']: value === account.value,
+              ['cursor-default opacity-70']: !canInteractWithTeams,
+            }
+          )}
+          value={account.value}
+          onSelect={(currentValue) => handleAccountSelection(currentValue)}
+        >
+          <div className={'flex items-center'}>
+            <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
+              <AvatarImage src={account.image ?? undefined} />
+              <AvatarFallback
+                className={cn('rounded-sm', {
+                  ['bg-background']: value === account.value,
+                  ['group-hover:bg-background']: value !== account.value,
+                })}
+              >
+                {account.label?.[0] ?? ''}
+              </AvatarFallback>
+            </Avatar>
+
+            <span className={'mr-2 max-w-[165px] truncate'}>
+              {account.label}
+            </span>
+          </div>
+
+          <SelectionIcon isSelected={value === account.value} />
+        </CommandItem>
+      );
+    }).filter(Boolean);
+  }, [accounts, value, canInteractWithTeams, handleAccountSelection]);
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Embed Project</DialogTitle>
-        </DialogHeader>
-        
-        <div className="mt-4">
-          <div className="relative">
-            <pre className="bg-slate-950 text-slate-50 p-4 rounded-lg overflow-x-auto whitespace-pre-wrap break-all">
-              <code className="text-sm">{iframeCode}</code>
-            </pre>
-          </div>
-          
-          <div className="mt-4 flex justify-end">
-            <Button
-              onClick={handleCopyCode}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            data-test={'account-selector-trigger'}
+            size={collapsed ? 'icon' : 'default'}
+            variant="ghost"
+            role="combobox"
+            aria-expanded={open}
+            className={cn(
+              'dark:shadow-primary/10 group w-full min-w-0 px-2 lg:w-auto lg:max-w-fit',
+              {
+                'justify-start': !collapsed,
+                'm-auto justify-center px-2 lg:w-full': collapsed,
+              },
+              className,
+            )}
+          >
+            <If
+              condition={selected}
+              fallback={
+                <span className={'flex max-w-full items-center space-x-4'}>
+                  <PersonalAccountAvatar />
+                  <span
+                    className={cn('truncate', {
+                      hidden: collapsed,
+                    })}
+                  >
+                    <Trans i18nKey={'teams:personalAccount'} />
+                  </span>
+                </span>
+              }
             >
-              {copied ? (
-                <>
-                  <Check className="h-4 w-4" />
-                  Copied!
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4" />
-                  Copy Code
-                </>
+              {(account) => (
+                <span className={'flex max-w-full items-center space-x-4'}>
+                  <Avatar className={'h-6 w-6 rounded-sm'}>
+                    <AvatarImage src={account.image ?? undefined} />
+                    <AvatarFallback className={'group-hover:bg-background rounded-sm'}>
+                      {account.label?.[0] ?? ''}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <span
+                    className={cn('truncate', {
+                      hidden: collapsed,
+                    })}
+                  >
+                    {account.label}
+                  </span>
+                </span>
               )}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+            </If>
 
-const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, children }) => {
-  if (!appUrl) {
-    return null;
-  }
+            <CaretSortIcon
+              className={cn('ml-2 h-4 w-4 shrink-0 opacity-50', {
+                hidden: collapsed,
+              })}
+            />
+          </Button>
+        </PopoverTrigger>
 
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="max-w-[100vw] w-screen h-screen p-0 rounded-none">
-        <div className="absolute right-4 top-4 z-50">
-          <DialogClose asChild>
-            <Button 
-              variant="outline" 
-              size="sm"
-              className="bg-white hover:bg-gray-100"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </DialogClose>
-        </div>
-        <iframe 
-          src={appUrl}
-          className="w-full h-full border-0"
-          allow="accelerometer; camera; encrypted-media; fullscreen; geolocation; gyroscope; microphone; midi"
+        <PopoverContent
+          data-test={'account-selector-content'}
+          className="w-full p-0"
+          collisionPadding={collisionPadding}
+        >
+          <Command>
+            <CommandInput placeholder={t('searchAccount')} className="h-9" />
+            <CommandList>
+              <CommandGroup>
+                <CommandItem
+                  onSelect={() => handleAccountSelection('personal')}
+                  value={'personal'}
+                >
+                  <PersonalAccountAvatar />
+                  <span className={'ml-2'}>
+                    <Trans i18nKey={'teams:personalAccount'} />
+                  </span>
+                  <SelectionIcon isSelected={value === 'personal'} />
+                </CommandItem>
+              </CommandGroup>
+
+              <CommandSeparator />
+
+              {commandItems.length > 0 && (
+                <CommandGroup
+                  heading={
+                    <Trans
+                      i18nKey={'teams:yourTeams'}
+                      values={{ teamsCount: commandItems.length }}
+                    />
+                  }
+                >
+                  {commandItems}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+
+          <Separator />
+
+          {(features.enableTeamCreation || hasTeamRole) && (
+            <div className={'p-1'}>
+              <Button
+                data-test={'create-team-account-trigger'}
+                variant="ghost"
+                size={'sm'}
+                className="w-full justify-start text-sm font-normal"
+                onClick={() => {
+                  setIsCreatingAccount(true);
+                  setOpen(false);
+                }}
+              >
+                <Plus className="mr-3 h-4 w-4" />
+                <span>
+                  <Trans i18nKey={'teams:createTeam'} />
+                </span>
+              </Button>
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
+
+      {(features.enableTeamCreation || hasTeamRole) && (
+        <CreateTeamAccountDialog
+          isOpen={isCreatingAccount}
+          setIsOpen={setIsCreatingAccount}
         />
-      </DialogContent>
-    </Dialog>
+      )}
+    </>
   );
-};
+}
 
-export default function ProjectsList({ projects, userRole }: ProjectsListProps) {
-  console.log('ProjectsList render:', { projects, userRole });
-
-  const [searchQuery, setSearchQuery] = useState<string>('');
-
-  if (!projects) {
-    console.log('No projects provided to ProjectsList');
-    return <div>No projects available.</div>;
-  }
-
-  console.log('Number of projects:', projects.length);
-
-  const filteredProjects = projects.filter(project =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  console.log('Filtered projects:', filteredProjects.length);
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
+function UserAvatar({ pictureUrl }: { pictureUrl?: string }) {
   return (
-    <div className="w-full space-y-4">
-      <Input
-        placeholder="Search projects..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="max-w-sm"
-      />
-
-      <div className="w-full">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[300px]">Project Name</TableHead>
-              <TableHead className="w-[200px]">Created</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredProjects.map((project) => (
-              <TableRow key={project.id}>
-                <TableCell className="font-medium">
-                  {project.name}
-                </TableCell>
-                <TableCell>
-                  {formatDate(project.created_at)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <ProjectIframeDialog appUrl={project.app_url}>
-                      <Button 
-                        variant="default"
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Maximize2 className="h-4 w-4 mr-1" />
-                        Open
-                      </Button>
-                    </ProjectIframeDialog>
-                    <MembersDialog 
-                      projectId={project.id}
-                      currentUserRole={userRole}
-                      members={project.members}
-                      onDeleteMember={async (userId: string) => {
-                        const response = await fetch(`/api/projects/${project.id}/members/${userId}`, {
-                          method: 'DELETE'
-                        });
-                        
-                        if (!response.ok) {
-                          throw new Error('Failed to delete member');
-                        }
-                      }}
-                    >
-                      <Button 
-                        variant="default"
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Users className="h-4 w-4 mr-1" />
-                        Members
-                      </Button>
-                    </MembersDialog>
-                    <EmbedProjectDialog appUrl={project.app_url}>
-                      <Button 
-                        variant="default"
-                        size="sm"
-                        className="bg-orange-500 hover:bg-orange-600"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Embed
-                      </Button>
-                    </EmbedProjectDialog>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <Avatar className={'h-6 w-6 rounded-sm'}>
+      <AvatarImage src={pictureUrl} />
+    </Avatar>
   );
 }

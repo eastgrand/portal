@@ -23,23 +23,15 @@ import { Separator } from '@kit/ui/separator';
 import { Trans } from '@kit/ui/trans';
 import { cn } from '@kit/ui/utils';
 
-import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
-import { usePersonalAccountData } from '../hooks/use-personal-account-data';
+import { CreateTeamAccountDialog } from '../../../../features/team-accounts/src/components/create-team-account-dialog';
 
 type UserRole = 'owner' | 'admin' | 'member' | 'super-admin';
 
-interface UserAuthMetadata {
-  role?: string;
-}
-
-interface ExtendedAuth {
-  user: {
-    raw_app_meta_data: UserAuthMetadata;
-  };
-}
-
 interface ExtendedUser extends User {
-  auth: ExtendedAuth;
+  role?: UserRole;
+  app_metadata: {
+    role?: UserRole;
+  };
 }
 
 export function AccountSelector({
@@ -49,7 +41,6 @@ export function AccountSelector({
   account,
   accounts,
   selectedAccount,
-  userId,
   collapsed = false,
   collisionPadding = 20,
   role = 'member',
@@ -71,7 +62,6 @@ export function AccountSelector({
     image?: string | null;
   }>;
   selectedAccount?: string;
-  userId?: string;
   collapsed?: boolean;
   collisionPadding?: number;
   role: UserRole;
@@ -81,28 +71,13 @@ export function AccountSelector({
   const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
   const router = useRouter();
   const { t } = useTranslation('teams');
-  const { data: personalAccountData } = usePersonalAccountData(
-    userId ?? user.id,
-    account,
-  );
 
-  // Get the user's role from the authentication metadata first
-  const userAuthMetadata = user?.auth?.user?.raw_app_meta_data;
-  
-  // Check for super-admin first as it's in a different location
-  const isSuperAdmin = userAuthMetadata?.role === 'super-admin';
-  
-  // Only check standard roles if not a super-admin
+  const isSuperAdmin = role === 'super-admin' || 
+                      user?.role === 'super-admin' || 
+                      user?.app_metadata?.role === 'super-admin';
+                      
   const hasTeamRole = isSuperAdmin || role === 'owner' || role === 'admin';
-  const canInteractWithTeams = isSuperAdmin || hasTeamRole;
-
-  console.log('Role checks:', {
-    superAdmin: isSuperAdmin,
-    metadataRole: userAuthMetadata?.role,
-    providedRole: role,
-    hasTeamRole,
-    canInteractWithTeams
-  });
+  const canInteractWithTeams = hasTeamRole;
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
@@ -139,18 +114,16 @@ export function AccountSelector({
   }, [selectedAccount]);
 
   const selected = accounts.find((account) => account.value === value);
-  const pictureUrl = personalAccountData?.picture_url;
+  const pictureUrl = account?.picture_url;
 
-  const Icon = (props: { item: string }) => {
-    return (
-      <CheckCircle
-        className={cn(
-          'ml-auto h-4 w-4',
-          value === props.item ? 'opacity-100' : 'opacity-0',
-        )}
-      />
-    );
-  };
+  const Icon = ({ item }: { item: string }) => (
+    <CheckCircle
+      className={cn(
+        'ml-auto h-4 w-4',
+        value === item ? 'opacity-100' : 'opacity-0',
+      )}
+    />
+  );
 
   const PersonalAccountAvatar = () =>
     pictureUrl ? (
@@ -338,10 +311,10 @@ export function AccountSelector({
   );
 }
 
-function UserAvatar(props: { pictureUrl?: string }) {
+function UserAvatar({ pictureUrl }: { pictureUrl?: string }) {
   return (
     <Avatar className={'h-6 w-6 rounded-sm'}>
-      <AvatarImage src={props.pictureUrl} />
+      <AvatarImage src={pictureUrl} />
     </Avatar>
   );
 }
