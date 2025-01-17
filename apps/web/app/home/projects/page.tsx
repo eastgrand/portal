@@ -31,8 +31,14 @@ interface ProjectMember {
 export default async function ProjectsPage() {
   const client = getSupabaseServerComponentClient();
   
-  const { data: { user } } = await client.auth.getUser();
-  if (!user) return null;
+  const { data: { user }, error: userError } = await client.auth.getUser();
+  if (userError || !user) {
+    console.error('Auth error:', userError);
+    return null;
+  }
+
+  // Add safety check for user metadata
+  const userRole = user.app_metadata?.role || 'member';
 
   const { data: projectsData, error: projectsError } = await client
     .from('projects')
@@ -44,11 +50,12 @@ export default async function ProjectsPage() {
       updated_at,
       description,
       app_url,
-      project_members (
+      project_members!inner (
         user_id,
         role
       )
-    `);
+    `)
+    .eq('project_members.user_id', user.id);
 
   if (projectsError || !projectsData) {
     console.error('Error fetching projects:', projectsError);
@@ -94,8 +101,6 @@ export default async function ProjectsPage() {
     })
   );
 
-  const projectRole = projectsData[0]?.project_members?.[0]?.role ?? 'member';
-
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
       <div className="px-8 py-6">
@@ -109,7 +114,7 @@ export default async function ProjectsPage() {
           <div className="p-6">
             <ProjectsList 
               projects={projects} 
-              userRole={projectRole}
+              userRole={userRole}
               user={user}
             />
           </div>
