@@ -190,14 +190,21 @@ async function fetchProjects(): Promise<{
           role
         )
       `)
-      .eq('project_members.user_id', user.id);
+      .eq('project_members.user_id', user.id)
+      .or('role.eq.owner,role.eq.member', { foreignTable: 'project_members' });
 
     if (projectsError || !projectsData) {
       console.error('Error fetching projects:', projectsError);
       return defaultResult;
     }
 
-    const projectRole = (projectsData[0]?.project_members?.[0]?.role ?? 'member') as ProjectListRole;
+    // Get the highest role if user has multiple roles
+    const projectRole = projectsData.reduce((highestRole, project) => {
+      const userRole = project.project_members?.[0]?.role as ProjectListRole;
+      if (userRole === 'owner') return 'owner';
+      if (userRole === 'admin' && highestRole !== 'owner') return 'admin';
+      return highestRole;
+    }, 'member' as ProjectListRole);
     
     const projectsWithMembers = await Promise.all(
       projectsData.map(async (project) => ({
