@@ -41,6 +41,38 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [userRole, setUserRole] = useState<UserRole>('member');
 
+  const fetchProjectMembers = async (projectId: string) => {
+    const { data: memberData } = await client
+      .from('project_members')
+      .select('user_id, role, created_at, updated_at')
+      .eq('project_id', projectId);
+
+    return Promise.all(
+      (memberData || []).map(async (member: { 
+        user_id: string; 
+        role: string; 
+        created_at: string; 
+        updated_at: string; 
+      }) => {
+        const { data: userData } = await client
+          .from('accounts')
+          .select('name, email')
+          .eq('id', member.user_id)
+          .single();
+
+        return {
+          user_id: member.user_id,
+          role: member.role as UserRole,
+          created_at: member.created_at,
+          updated_at: member.updated_at,
+          name: userData?.name ?? 'Unknown User',
+          email: userData?.email ?? 'no-email',
+          avatar_url: undefined
+        };
+      })
+    );
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -107,39 +139,5 @@ export default function ProjectsPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-// Helper function
-async function fetchProjectMembers(projectId: string) {
-  const client = useSupabase();
-  const { data: memberData } = await client
-    .from('project_members')
-    .select('user_id, role, created_at, updated_at')
-    .eq('project_id', projectId);
-
-  return Promise.all(
-    (memberData ?? []).map(async (member: { 
-      user_id: string; 
-      role: string; 
-      created_at: string; 
-      updated_at: string; 
-    }) => {
-      const { data: userData } = await client
-        .from('accounts')
-        .select('name, email')
-        .eq('id', member.user_id)
-        .single();
-
-      return {
-        user_id: member.user_id,
-        role: member.role as UserRole,
-        created_at: member.created_at,
-        updated_at: member.updated_at,
-        name: userData?.name ?? 'Unknown User',
-        email: userData?.email ?? 'no-email',
-        avatar_url: undefined
-      };
-    })
   );
 }
