@@ -29,7 +29,6 @@ interface ProjectMember {
   avatar_url?: string;
 }
 
-// Database row types
 type AccountRow = {
   id: string;
   name: string;
@@ -68,7 +67,7 @@ async function fetchUserAccount(userId: string): Promise<{
       .eq('id', userId)
       .single();
     
-    console.log('User account data:', data);
+    console.log('User account query result:', { data, error });
       
     if (error) {
       console.error('Error fetching user account:', error);
@@ -98,8 +97,10 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
   try {
     const { data: memberData, error: memberError } = await client
       .from('project_members')
-      .select()
+      .select('*')
       .eq('project_id', projectId);
+
+    console.log('Project members query result:', { memberData, memberError });
 
     if (memberError) {
       console.error('Error fetching project members:', memberError);
@@ -150,7 +151,7 @@ async function fetchProjects(): Promise<Project[]> {
   try {
     // Step 1: Get current user
     const { data: { user }, error: userError } = await client.auth.getUser();
-    console.log('Current user:', user?.id);
+    console.log('Auth getUser result:', { user, userError });
     
     if (userError) {
       console.error('Error getting user:', userError);
@@ -162,6 +163,15 @@ async function fetchProjects(): Promise<Project[]> {
       return [];
     }
 
+    // Let's first try to get all projects to see if the table is accessible
+    console.log('Testing projects table access...');
+    const { data: allProjects, error: allProjectsError } = await client
+      .from('projects')
+      .select('*')
+      .limit(1);
+
+    console.log('Projects table test query result:', { allProjects, allProjectsError });
+
     // Step 2: Get project memberships
     console.log('Fetching project memberships for user:', user.id);
     const { data: memberData, error: memberError } = await client
@@ -169,13 +179,12 @@ async function fetchProjects(): Promise<Project[]> {
       .select('*')
       .eq('user_id', user.id);
 
+    console.log('Project memberships query result:', { memberData, memberError });
+
     if (memberError) {
       console.error('Error fetching project memberships:', memberError);
       return [];
     }
-
-    console.log('Project memberships found:', memberData?.length);
-    console.log('Raw membership data:', memberData);
 
     if (!memberData || memberData.length === 0) {
       console.log('No project memberships found');
@@ -186,7 +195,7 @@ async function fetchProjects(): Promise<Project[]> {
 
     // Step 3: Get project IDs
     const projectIds = userProjects.map(up => up.project_id);
-    console.log('Project IDs:', projectIds);
+    console.log('Project IDs extracted:', projectIds);
 
     // Step 4: Get projects
     console.log('Fetching projects with IDs:', projectIds);
@@ -195,13 +204,12 @@ async function fetchProjects(): Promise<Project[]> {
       .select('*')
       .in('id', projectIds);
 
+    console.log('Projects query result:', { rawProjects, projectsError });
+
     if (projectsError) {
       console.error('Error fetching projects:', projectsError);
       return [];
     }
-
-    console.log('Raw projects found:', rawProjects?.length);
-    console.log('Raw project data:', rawProjects);
 
     if (!rawProjects) {
       console.log('No projects data returned');
@@ -220,7 +228,7 @@ async function fetchProjects(): Promise<Project[]> {
           role: m.role
         }));
 
-        return {
+        const processedProject = {
           id: project.id,
           name: project.name,
           description: project.description?.toString() ?? null,
@@ -231,6 +239,9 @@ async function fetchProjects(): Promise<Project[]> {
           members,
           project_members
         };
+        
+        console.log('Processed project:', processedProject);
+        return processedProject;
       })
     );
 
@@ -246,7 +257,10 @@ async function fetchProjects(): Promise<Project[]> {
 export default function ProjectsPage() {
   console.log('ProjectsPage rendering');
   const projects = use(fetchProjects());
-  console.log('Projects fetched:', projects);
+  console.log('Projects fetched:', {
+    count: projects.length,
+    projects
+  });
   
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
