@@ -62,6 +62,7 @@ function SidebarContainer(props: {
         <div className={className}>
           <TeamAccountAccountsSelector
             userId={userId}
+            user={user}
             selectedAccount={account}
             accounts={accounts}
             collapsed={minimized}

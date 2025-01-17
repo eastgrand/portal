@@ -95,14 +95,14 @@ export function AccountSelector({
   );
 
   // Debug logs
-  console.log('Current userRole:', userRole);
+  console.log('User metadata:', user.raw_app_meta_data);
   console.log('Features:', features);
 
   const isSuperAdmin = useMemo(() => {
-    const isAdmin = userRole === 'super-admin';
+    const isAdmin = user.raw_app_meta_data?.role === 'super-admin';
     console.log('Is Super Admin?:', isAdmin);
     return isAdmin;
-  }, [userRole]);
+  }, [user.raw_app_meta_data?.role]);
 
   const canCreateTeam = useMemo(() => {
     const canCreate = isSuperAdmin && features.enableTeamCreation;
@@ -135,7 +135,7 @@ export function AccountSelector({
 
     if (currentValue === 'personal') {
       onAccountChange(undefined);
-      window.location.href = '/home/projects';
+      window.location.href = '/home';
     } else {
       onAccountChange(currentValue);
       window.location.href = `/home/${currentValue}`;

@@ -1,18 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { use } from 'react';
-import { headers } from 'next/headers';
-import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
-import { Button } from '@kit/ui/button';
-import { If } from '@kit/ui/if';
-import { Trans } from '@kit/ui/trans';
-import { PageBody } from '@kit/ui/page';
-import ProjectsList from '../(user)/_components/projects-list';
-import { EmptyStateButton } from '@kit/ui/empty-state';
-import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+'use client';
 
-// ProjectsList component roles
-type ProjectListRole = 'owner' | 'admin' | 'member';
+import { use } from 'react';
+import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
+import type { User } from '@supabase/supabase-js';
+import ProjectsList from '../(user)/_components/projects-list';
+
+// ProjectsList component roles - must match the types in ProjectsList component
+type UserRole = 'owner' | 'admin' | 'member';
 
 interface Project {
   id: string;
@@ -24,14 +18,14 @@ interface Project {
   app_url: string;
   project_members: {
     user_id: string;
-    role: ProjectListRole;
+    role: UserRole;
   }[];
   members: ProjectMember[];
 }
 
 interface ProjectMember {
   user_id: string;
-  role: ProjectListRole;
+  role: UserRole;
   created_at: string;
   updated_at: string;
   name: string;
@@ -89,7 +83,7 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
       if (userAccount) {
         members.push({
           user_id: member.user_id,
-          role: member.role as ProjectListRole,
+          role: member.role as UserRole,
           created_at: member.created_at,
           updated_at: member.updated_at,
           name: userAccount.name,
@@ -119,23 +113,23 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
 async function fetchProjects(): Promise<{
   projects: Project[];
   isSuperAdmin: boolean;
-  projectRole: ProjectListRole;
+  projectRole: UserRole;
+  user: User | null;
 }> {
   const client = getSupabaseServerComponentClient();
   const defaultResult = {
     projects: [] as Project[],
     isSuperAdmin: false,
-    projectRole: 'member' as ProjectListRole
+    projectRole: 'member' as UserRole,
+    user: null
   };
   
   try {
-    // Get system role
-    const systemRole = await getUserRole(client as any);
-    const isSuperAdmin = systemRole === 'super-admin';
-    
-    // Get current user
     const { data: { user } } = await client.auth.getUser();
     if (!user) return defaultResult;
+
+    const systemRole = (user.app_metadata as { role?: string })?.role;
+    const isSuperAdmin = systemRole === 'super-admin';
     
     // If super-admin, fetch all projects
     if (isSuperAdmin) {
@@ -157,7 +151,7 @@ async function fetchProjects(): Promise<{
 
       if (projectsError || !projectsData) {
         console.error('Error fetching projects:', projectsError);
-        return defaultResult;
+        return { ...defaultResult, user };
       }
 
       const projectsWithMembers = await Promise.all(
@@ -170,7 +164,8 @@ async function fetchProjects(): Promise<{
       return {
         projects: projectsWithMembers,
         isSuperAdmin: true,
-        projectRole: 'admin'
+        projectRole: 'admin',
+        user
       };
     }
 
@@ -194,10 +189,10 @@ async function fetchProjects(): Promise<{
 
     if (projectsError || !projectsData) {
       console.error('Error fetching projects:', projectsError);
-      return defaultResult;
+      return { ...defaultResult, user };
     }
 
-    const projectRole = (projectsData[0]?.project_members?.[0]?.role ?? 'member') as ProjectListRole;
+    const projectRole = (projectsData[0]?.project_members?.[0]?.role ?? 'member') as UserRole;
     
     const projectsWithMembers = await Promise.all(
       projectsData.map(async (project) => ({
@@ -209,7 +204,8 @@ async function fetchProjects(): Promise<{
     return {
       projects: projectsWithMembers,
       isSuperAdmin: false,
-      projectRole
+      projectRole,
+      user
     };
   } catch (error) {
     console.error('Error in fetchProjects:', error);
@@ -218,7 +214,7 @@ async function fetchProjects(): Promise<{
 }
 
 export default function ProjectsPage() {
-  const { projects, isSuperAdmin, projectRole } = use(fetchProjects());
+  const { projects, projectRole, user } = use(fetchProjects());
 
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
@@ -231,27 +227,15 @@ export default function ProjectsPage() {
       </div>
 
       <div className="px-8 pb-8">
-        <If condition={projects.length === 0}>
-          <div className="bg-white rounded-lg border">
-            <div className="p-6">
-              <ProjectsList 
-                projects={projects} 
-                userRole={isSuperAdmin ? 'admin' : projectRole} 
-              />
-            </div>
+        <div className="bg-white rounded-lg border">
+          <div className="p-6">
+            <ProjectsList 
+              projects={projects} 
+              userRole={projectRole}
+              user={user ?? undefined}
+            />
           </div>
-        </If>
-
-        <If condition={projects.length > 0}>
-          <div className="bg-white rounded-lg border">
-            <div className="p-6">
-              <ProjectsList 
-                projects={projects} 
-                userRole={isSuperAdmin ? 'admin' : projectRole} 
-              />
-            </div>
-          </div>
-        </If>
+        </div>
       </div>
     </div>
   );

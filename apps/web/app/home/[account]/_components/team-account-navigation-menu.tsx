@@ -52,6 +52,7 @@ export function TeamAccountNavigationMenu(props: {
 
         <TeamAccountAccountsSelector
           userId={user.id}
+          user={user}
           selectedAccount={account.slug}
           accounts={accounts.map((account) => ({
             label: account.name,

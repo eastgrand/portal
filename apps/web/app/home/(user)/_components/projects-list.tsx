@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import React, { useState, ReactNode } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { Button } from "@kit/ui/button";
 import { Input } from "@kit/ui/input";
 import {
@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@kit/ui/table";
-import { Users, ExternalLink, Maximize2, X, Code2, Copy, Check } from "lucide-react";
+import { Users, ExternalLink, Maximize2, X, Copy, Check } from "lucide-react";
+import { AccountSelector } from '@kit/accounts/account-selector';
 import MembersDialog from './members-dialog';
 import {
   Dialog,
@@ -51,6 +52,7 @@ type UserRole = 'owner' | 'admin' | 'member';
 interface ProjectsListProps {
   projects: Project[];
   userRole: UserRole;
+  user?: User;
 }
 
 interface ProjectIframeDialogProps {
@@ -155,7 +157,7 @@ const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, child
   );
 };
 
-export default function ProjectsList({ projects, userRole }: ProjectsListProps) {
+export default function ProjectsList({ projects, userRole, user }: ProjectsListProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const filteredProjects = projects.filter(project =>
@@ -170,8 +172,31 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
     });
   };
 
+  const handleAccountChange = (value: string | undefined) => {
+    // Handle account change navigation
+    if (value === undefined) {
+      window.location.href = '/home/projects';
+    } else {
+      window.location.href = `/home/${value}/projects`;
+    }
+  };
+
   return (
     <div className="w-full space-y-4">
+      {user && (
+        <div className="mb-6">
+          <AccountSelector
+            user={user}
+            userRole={userRole}
+            features={{
+              enableTeamCreation: true
+            }}
+            accounts={[]} // Your accounts data here
+            onAccountChange={handleAccountChange}
+          />
+        </div>
+      )}
+
       <Input
         placeholder="Search projects..."
         value={searchQuery}
@@ -179,7 +204,7 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
         className="max-w-sm"
       />
 
-<div className="w-full">
+      <div className="w-full">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
