@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import React, { useState, ReactNode } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@kit/ui/button";
 import { Input } from "@kit/ui/input";
 import {
@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@kit/ui/table";
-import { Users, ExternalLink, Maximize2, X, Code2, Copy, Check } from "lucide-react";
+import { Users, ExternalLink, Maximize2, X, Copy, Check } from "lucide-react";
 import MembersDialog from './members-dialog';
 import {
   Dialog,
@@ -22,6 +22,18 @@ import {
   DialogTrigger,
   DialogClose
 } from "@kit/ui/dialog";
+
+type ProjectListRole = 'owner' | 'admin' | 'member';
+
+interface ProjectMember {
+  user_id: string;
+  role: ProjectListRole;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+}
 
 interface Project {
   id: string;
@@ -33,34 +45,24 @@ interface Project {
   app_url: string;
   project_members: {
     user_id: string;
-    role: 'owner' | 'admin' | 'member';
+    role: ProjectListRole;
   }[];
-  members: {
-    user_id: string;
-    role: UserRole;
-    created_at: string;
-    updated_at: string;
-    name: string;
-    email: string;
-    avatar_url?: string;
-  }[];
+  members: ProjectMember[];
 }
-
-type UserRole = 'owner' | 'admin' | 'member';
 
 interface ProjectsListProps {
   projects: Project[];
-  userRole: UserRole;
+  userRole: ProjectListRole;
 }
 
 interface ProjectIframeDialogProps {
   appUrl: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface EmbedProjectDialogProps {
   appUrl: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 const EmbedProjectDialog: React.FC<EmbedProjectDialogProps> = ({ appUrl, children }) => {
@@ -190,7 +192,7 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
         className="max-w-sm"
       />
 
-<div className="w-full">
+      <div className="w-full">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
