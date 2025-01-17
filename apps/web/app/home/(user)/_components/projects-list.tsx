@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, ReactNode } from 'react';
-import type { User } from '@supabase/supabase-js';
+import type { User, UserAppMetadata } from '@supabase/supabase-js';
 import { Button } from "@kit/ui/button";
 import { Input } from "@kit/ui/input";
 import {
@@ -55,11 +55,22 @@ interface AccountData {
   image: string | null;
 }
 
+// Extended user interface to handle potential metadata variations
+interface ExtendedUser extends User {
+  raw_user_meta_data?: {
+    role?: string;
+  };
+  // Explicitly merge with UserAppMetadata to resolve type incompatibility
+  app_metadata: UserAppMetadata & {
+    role?: string;
+  };
+}
+
 interface ProjectsListProps {
   projects: Project[];
   userRole: UserRole;
-  user?: User;
-  accounts?: AccountData[]; // Added optional accounts prop
+  user?: ExtendedUser;
+  accounts?: AccountData[];
 }
 
 interface ProjectIframeDialogProps {
@@ -166,11 +177,28 @@ const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, child
 
 export default function ProjectsList({ 
   projects, 
-  userRole, 
+  userRole: initialUserRole, 
   user, 
   accounts = [] 
 }: ProjectsListProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Determine user role with multiple fallback mechanisms
+  const userRole = (() => {
+    if (initialUserRole) return initialUserRole;
+    
+    if (user) {
+      // Check various possible locations for role with nullish coalescing
+      const role = 
+        user.raw_user_meta_data?.role ?? 
+        user.app_metadata?.role ?? 
+        'member';
+      
+      return role as UserRole;
+    }
+    
+    return 'member';
+  })();
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
