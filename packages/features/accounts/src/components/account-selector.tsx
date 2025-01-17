@@ -91,31 +91,7 @@ export function AccountSelector({
   const selected = accounts.find((account) => account.value === value);
   const pictureUrl = personalAccountData?.picture_url;
 
-  const handleAccountSelection = (selectedValue: string) => {
-    try {
-      console.log('Account selected:', selectedValue);
-      console.log('Current user role:', authUserRole);
-      
-      setOpen(false);
-      
-      if (selectedValue === 'personal') {
-        console.log('Navigating to personal projects');
-        router.push('/home/projects');
-      } else {
-        const teamPath = `/home/${selectedValue}/projects`;
-        console.log('Navigating to team path:', teamPath);
-        router.push(teamPath);
-      }
-      
-      if (onAccountChange) {
-        const newValue = selectedValue === 'personal' ? undefined : selectedValue;
-        console.log('Calling onAccountChange with:', newValue);
-        onAccountChange(newValue);
-      }
-    } catch (error) {
-      console.error('Error during account selection:', error);
-    }
-  };
+
 
   const Icon = (props: { item: string }) => {
     return (
@@ -212,7 +188,15 @@ export function AccountSelector({
             <CommandList>
               <CommandGroup>
                 <CommandItem
-                  onSelect={() => handleAccountSelection('personal')}
+                  onSelect={(_currentValue) => {
+                    setOpen(false);
+                    const newPath = '/home/projects';
+                    console.log('Navigating to:', newPath);
+                    router.push(newPath);
+                    if (onAccountChange) {
+                      onAccountChange(undefined);
+                    }
+                  }}
                   value={'personal'}
                 >
                   <PersonalAccountAvatar />
@@ -249,7 +233,16 @@ export function AccountSelector({
                       )}
                       key={account.value}
                       value={account.value ?? ''}
-                      onSelect={(currentValue) => handleAccountSelection(currentValue)}
+                      onSelect={(currentValue) => {
+                        if (!canInteractWithTeams) return;
+                        setOpen(false);
+                        const newPath = currentValue === 'personal' ? '/home/projects' : `/home/${currentValue}/projects`;
+                        console.log('Navigating to:', newPath);
+                        router.push(newPath);
+                        if (onAccountChange) {
+                          onAccountChange(currentValue === 'personal' ? undefined : currentValue);
+                        }
+                      }}
                     >
                       <div className={'flex items-center'}>
                         <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
