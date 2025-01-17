@@ -135,7 +135,7 @@ export function AccountSelector({
 
     if (currentValue === 'personal') {
       onAccountChange(undefined);
-      window.location.href = '/home';
+      window.location.href = '/home/projects';
     } else {
       onAccountChange(currentValue);
       window.location.href = `/home/${currentValue}`;
