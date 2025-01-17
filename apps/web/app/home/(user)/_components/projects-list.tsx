@@ -156,11 +156,22 @@ const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, child
 };
 
 export default function ProjectsList({ projects, userRole }: ProjectsListProps) {
+  console.log('ProjectsList render:', { projects, userRole });
+
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  if (!projects) {
+    console.log('No projects provided to ProjectsList');
+    return <div>No projects available.</div>;
+  }
+
+  console.log('Number of projects:', projects.length);
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  console.log('Filtered projects:', filteredProjects.length);
 
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {

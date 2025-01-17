@@ -242,10 +242,18 @@ async function fetchProjects(): Promise<{
 }
 
 export default function ProjectsPage() {
-  const { projects, isSuperAdmin, projectRole } = use(fetchProjects());
+  console.log('ProjectsPage rendering');
+  const result = use(fetchProjects());
+  console.log('fetchProjects result:', result);
+  
+  const { projects, isSuperAdmin, projectRole } = result;
 
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
+      <div className="px-8 py-2 text-sm text-gray-500">
+        Debug: {projects.length} projects, Role: {projectRole}, SuperAdmin: {String(isSuperAdmin)}
+      </div>
+      
       <div className="px-8 py-6">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-semibold">
