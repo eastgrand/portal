@@ -26,6 +26,8 @@ import { cn } from '@kit/ui/utils';
 import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
 import { usePersonalAccountData } from '../hooks/use-personal-account-data';
 
+type UserRole = 'owner' | 'admin' | 'member';
+
 interface ExtendedUser extends User {
   auth: {
     user: {
@@ -68,7 +70,7 @@ export function AccountSelector({
   userId?: string;
   collapsed?: boolean;
   collisionPadding?: number;
-  role?: 'member' | 'owner' | 'admin';
+  role: UserRole;
   onAccountChange: (value: string | undefined) => void;
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -80,25 +82,15 @@ export function AccountSelector({
     account,
   );
 
-  const authUserRole = user.auth.user.raw_app_meta_data.role;
-  const isSuperAdmin = authUserRole === 'super-admin';
+  // Handle permissions based on role
   const hasTeamRole = role === 'owner' || role === 'admin';
-  const canInteractWithTeams = isSuperAdmin || hasTeamRole;
-
-  console.log('Account selector props:', {
-    userId: user?.id,
-    email: user?.email,
-    role,
-    isSuperAdmin,
-    hasTeamRole
-  });
+  const canInteractWithTeams = hasTeamRole;
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
       if (!canInteractWithTeams) {
         console.log('User cannot interact with teams:', {
           role,
-          isSuperAdmin,
           hasTeamRole,
           canInteractWithTeams
         });
@@ -295,7 +287,7 @@ export function AccountSelector({
 
           <Separator />
 
-          <If condition={features.enableTeamCreation || isSuperAdmin}>
+          <If condition={features.enableTeamCreation || hasTeamRole}>
             <div className={'p-1'}>
               <Button
                 data-test={'create-team-account-trigger'}
@@ -318,7 +310,7 @@ export function AccountSelector({
         </PopoverContent>
       </Popover>
 
-      <If condition={features.enableTeamCreation || isSuperAdmin}>
+      <If condition={features.enableTeamCreation || hasTeamRole}>
         <CreateTeamAccountDialog
           isOpen={isCreatingAccount}
           setIsOpen={setIsCreatingAccount}
