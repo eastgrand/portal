@@ -81,9 +81,13 @@ export function AccountSelector({
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
-      if (!selectedValue || !canInteractWithTeams) {
-        console.log('Invalid selection or user cannot interact with teams:', {
-          selectedValue,
+      if (!selectedValue) {
+        console.log('Invalid selection:', { selectedValue });
+        return;
+      }
+      
+      if (!canInteractWithTeams && selectedValue !== 'personal') {
+        console.log('User cannot interact with teams:', {
           role,
           hasTeamRole,
           canInteractWithTeams
@@ -96,13 +100,17 @@ export function AccountSelector({
       const isPersonal = selectedValue === 'personal';
       if (isPersonal) {
         console.log('Navigating to personal projects');
-        router.push('/projects');
-        onAccountChange?.(undefined);
+        router.push('/home/projects');
+        if (onAccountChange) {
+          onAccountChange(undefined);
+        }
       } else {
-        const teamPath = `/teams/${selectedValue}/projects`;
+        const teamPath = `/home/${selectedValue}/projects`;
         console.log('Navigating to team path:', teamPath);
         router.push(teamPath);
-        onAccountChange?.(selectedValue);
+        if (onAccountChange) {
+          onAccountChange(selectedValue);
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
