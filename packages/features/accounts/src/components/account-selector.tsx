@@ -80,9 +80,17 @@ export function AccountSelector({
     account,
   );
 
-  const authUserRole = user.auth.user.raw_app_meta_data.role;
+  // Add careful debug logging with existence checks
+  console.log('Debug user object:', {
+    hasUser: !!user,
+    hasAuth: user && !!user.auth,
+    hasAuthUser: user?.auth?.user,
+    hasMetaData: user?.auth?.user?.raw_app_meta_data,
+    userObject: user
+  });
+
+  const authUserRole = user?.auth?.user?.raw_app_meta_data?.role;
   console.log('Auth role:', authUserRole);
-  console.log('Full user object:', user);
 
   const isSuperAdmin = authUserRole === 'super-admin';
   const hasTeamRole = role === 'owner' || role === 'admin';
