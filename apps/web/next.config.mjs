@@ -39,7 +39,6 @@ const config = {
       fullUrl: true,
     },
   },
-  serverExternalPackages: [],
   // needed for supporting dynamic imports for local content
   outputFileTracingIncludes: {
     '/*': ['./content/**/*'],
@@ -64,7 +63,8 @@ const config = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    serverComponentsExternalPackages: [],
+    // @ts-expect-error - Next.js 15.1.3 types are incomplete
+    serverExternalPackages: [],
   },
   modularizeImports: {
     lodash: {
