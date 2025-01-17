@@ -178,7 +178,9 @@ async function fetchProjects(): Promise<{
     }
 
     // For regular users, fetch all projects where they are a member
-    const { data: projectsData, error: projectsError } = await client
+    console.log('Fetching projects for user ID:', user.id);
+    
+    const query = client
       .from('projects')
       .select(`
         id,
@@ -195,24 +197,40 @@ async function fetchProjects(): Promise<{
       `)
       .eq('project_members.user_id', user.id);
 
-    if (projectsError || !projectsData) {
+    console.log('Query:', query); // Just log the query object
+
+    const { data: projectsData, error: projectsError } = await query;
+
+    if (projectsError) {
       console.error('Error fetching projects:', projectsError);
       return defaultResult;
     }
 
-    console.log('Found projects:', projectsData);
+    console.log('Raw projects data:', projectsData);
+    console.log('Number of projects found:', projectsData?.length ?? 0);
+
+    if (!projectsData?.length) {
+      console.log('No projects found for user');
+      return defaultResult;
+    }
 
     const projectsWithMembers = await Promise.all(
-      projectsData.map(async (project) => ({
-        ...project,
-        members: await fetchProjectMembers(project.id)
-      }))
+      projectsData.map(async (project) => {
+        const members = await fetchProjectMembers(project.id);
+        console.log(`Members for project ${project.id}:`, members);
+        return {
+          ...project,
+          members
+        };
+      })
     );
+
+    console.log('Final processed projects:', projectsWithMembers);
 
     return {
       projects: projectsWithMembers,
       isSuperAdmin: false,
-      projectRole: 'member' // Default role for UI purposes
+      projectRole: 'member'
     };
 
   } catch (error) {
