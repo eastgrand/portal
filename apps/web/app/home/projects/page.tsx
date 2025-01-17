@@ -1,19 +1,18 @@
-// app/home/projects/page.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { use } from 'react';
+import { headers } from 'next/headers';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
+import { Button } from '@kit/ui/button';
+import { If } from '@kit/ui/if';
 import { Trans } from '@kit/ui/trans';
 import { PageBody } from '@kit/ui/page';
-import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import ProjectsList from '../(user)/_components/projects-list';
-import type { User } from '@supabase/supabase-js';
+import { EmptyStateButton } from '@kit/ui/empty-state';
+import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
 
-type ProjectRole = 'owner' | 'admin' | 'member';
-
-interface ExtendedUser extends User {
-  raw_user_meta_data?: {
-    role?: string;
-  };
-}
+// ProjectsList component roles
+type ProjectListRole = 'owner' | 'admin' | 'member';
 
 interface Project {
   id: string;
@@ -25,96 +24,157 @@ interface Project {
   app_url: string;
   project_members: {
     user_id: string;
-    role: ProjectRole;
+    role: ProjectListRole;
   }[];
-  members: {
-    user_id: string;
-    role: ProjectRole;
-    created_at: string;
-    updated_at: string;
-    name: string;
-    email: string;
-    avatar_url?: string;
-  }[];
+  members: ProjectMember[];
 }
 
-interface AccountData {
-  label: string;
-  value: string;
-  image: string | null;
+interface ProjectMember {
+  user_id: string;
+  role: ProjectListRole;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
 }
 
-interface AccountRow {
-  account: {
-    name: string;
-    slug: string;
-    picture_url: string | null;
-  } | null;
-}
-
-// Dummy type to satisfy eslint and provide type information
-type _Database = {
-  public: {
-    Tables: {
-      account_users: {
-        Row: AccountRow;
-      };
-    };
-  };
-};
-
-// Temporary interface to match ProjectsList component props
-interface _ProjectsListProps {
-  projects: Project[];
-  userRole: 'admin' | 'member';
-  user?: ExtendedUser;
-  accounts?: AccountData[];
-}
-
-async function fetchPersonalProjects() {
+async function fetchUserAccount(userId: string): Promise<{
+  name: string;
+  email: string;
+} | null> {
   const client = getSupabaseServerComponentClient();
   
   try {
-    const { data: authData, error: userError } = await client.auth.getUser();
-    
-    console.log('Full Auth Data:', JSON.stringify(authData, null, 2));
-    console.log('User Error:', userError);
+    const { data, error } = await client
+      .from('accounts')
+      .select('name, email')
+      .eq('id', userId)
+      .single();
+      
+    if (error || !data?.name || !data?.email) {
+      console.error('Error fetching user account:', error);
+      return null;
+    }
 
-    if (userError || !authData.user) {
-      console.error('Auth error:', userError);
-      return { 
-        projects: [] as Project[], 
-        userRole: 'member' as const, 
-        user: null, 
-        accounts: [] as AccountData[] 
+    return {
+      name: data.name,
+      email: data.email
+    };
+  } catch (error) {
+    console.error('Error in fetchUserAccount:', error);
+    return null;
+  }
+}
+
+async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> {
+  const client = getSupabaseServerComponentClient();
+  
+  try {
+    const { data: memberData, error: memberError } = await client
+      .from('project_members')
+      .select('user_id, role, created_at, updated_at')
+      .eq('project_id', projectId);
+
+    if (memberError || !memberData) {
+      console.error('Error fetching project members:', memberError);
+      return [];
+    }
+
+    const members: ProjectMember[] = [];
+
+    for (const member of memberData) {
+      const userAccount = await fetchUserAccount(member.user_id);
+      
+      if (userAccount) {
+        members.push({
+          user_id: member.user_id,
+          role: member.role as ProjectListRole,
+          created_at: member.created_at,
+          updated_at: member.updated_at,
+          name: userAccount.name,
+          email: userAccount.email,
+          avatar_url: undefined
+        });
+      } else {
+        members.push({
+          user_id: member.user_id,
+          role: 'member',
+          created_at: member.created_at,
+          updated_at: member.updated_at,
+          name: 'Unknown User',
+          email: 'no-email',
+          avatar_url: undefined
+        });
+      }
+    }
+
+    return members;
+  } catch (error) {
+    console.error('Error in fetchProjectMembers:', error);
+    return [];
+  }
+}
+
+async function fetchProjects(): Promise<{
+  projects: Project[];
+  isSuperAdmin: boolean;
+  projectRole: ProjectListRole;
+}> {
+  const client = getSupabaseServerComponentClient();
+  const defaultResult = {
+    projects: [] as Project[],
+    isSuperAdmin: false,
+    projectRole: 'member' as ProjectListRole
+  };
+  
+  try {
+    // Get system role
+    const systemRole = await getUserRole(client as any);
+    const isSuperAdmin = systemRole === 'super-admin';
+    
+    // Get current user
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) return defaultResult;
+    
+    // If super-admin, fetch all projects
+    if (isSuperAdmin) {
+      const { data: projectsData, error: projectsError } = await client
+        .from('projects')
+        .select(`
+          id,
+          name,
+          account_id,
+          created_at,
+          updated_at,
+          description,
+          app_url,
+          project_members (
+            user_id,
+            role
+          )
+        `);
+
+      if (projectsError || !projectsData) {
+        console.error('Error fetching projects:', projectsError);
+        return defaultResult;
+      }
+
+      const projectsWithMembers = await Promise.all(
+        projectsData.map(async (project) => ({
+          ...project,
+          members: await fetchProjectMembers(project.id)
+        }))
+      );
+
+      return {
+        projects: projectsWithMembers,
+        isSuperAdmin: true,
+        projectRole: 'admin'
       };
     }
 
-    // Fetch raw user metadata directly from the auth.users table
-    const { data: userMetadataData, error: metadataError } = await client
-      .from('auth.users')
-      .select('raw_user_meta_data')
-      .eq('id', authData.user.id)
-      .single();
-
-    console.log('User Metadata:', JSON.stringify(userMetadataData, null, 2));
-    console.log('Metadata Error:', metadataError);
-
-    // Determine user role from metadata or default
-    const userRole = userMetadataData?.raw_user_meta_data?.role ?? 
-                     authData.user.app_metadata?.role ?? 
-                     'member';
-    const isSuperAdmin = userRole === 'super-admin';
-
-    // Create extended user with metadata
-    const extendedUser: ExtendedUser = {
-      ...authData.user,
-      raw_user_meta_data: {
-        role: userRole
-      }
-    };
-
-    // Get personal projects
+    // For non-super-admin users, fetch only their projects
     const { data: projectsData, error: projectsError } = await client
       .from('projects')
       .select(`
@@ -125,111 +185,74 @@ async function fetchPersonalProjects() {
         updated_at,
         description,
         app_url,
-        project_members (
+        project_members!inner (
           user_id,
           role
         )
       `)
-      .eq('project_members.user_id', authData.user.id);
+      .eq('project_members.user_id', user.id);
 
-    console.log('Projects Data:', JSON.stringify(projectsData, null, 2));
-    console.log('Projects Error:', projectsError);
-
-    if (projectsError) {
-      throw new Error(`Failed to fetch projects: ${projectsError.message}`);
+    if (projectsError || !projectsData) {
+      console.error('Error fetching projects:', projectsError);
+      return defaultResult;
     }
 
+    const projectRole = (projectsData[0]?.project_members?.[0]?.role ?? 'member') as ProjectListRole;
+    
     const projectsWithMembers = await Promise.all(
-      (projectsData ?? []).map(async (project) => {
-        const { data: memberData } = await client
-          .from('project_members')
-          .select('user_id, role, created_at, updated_at')
-          .eq('project_id', project.id);
-
-        const members = await Promise.all(
-          (memberData ?? []).map(async (member) => {
-            const { data: userData } = await client
-              .from('accounts')
-              .select('name, email')
-              .eq('id', member.user_id)
-              .single();
-
-            return {
-              user_id: member.user_id,
-              role: member.role as ProjectRole,
-              created_at: member.created_at,
-              updated_at: member.updated_at,
-              name: userData?.name ?? 'Unknown User',
-              email: userData?.email ?? 'no-email',
-              avatar_url: undefined
-            };
-          })
-        );
-
-        return {
-          ...project,
-          members
-        };
-      })
+      projectsData.map(async (project) => ({
+        ...project,
+        members: await fetchProjectMembers(project.id)
+      }))
     );
 
-    // Get all accounts for the user for the account selector
-    const { data: accountsData } = await client
-      .from('account_users')
-      .select(`
-        account:account_id (
-          name,
-          slug,
-          picture_url
-        )
-      `)
-      .eq('user_id', authData.user.id);
-
-    console.log('Accounts Data:', JSON.stringify(accountsData, null, 2));
-
-    const accounts: AccountData[] = (accountsData as AccountRow[] | null)?.map(row => ({
-      label: row.account?.name ?? '',
-      value: row.account?.slug ?? '',
-      image: row.account?.picture_url ?? null
-    })) ?? [];
-
-    return { 
+    return {
       projects: projectsWithMembers,
-      userRole: isSuperAdmin ? 'admin' as const : 'member' as const,
-      user: extendedUser,
-      accounts
+      isSuperAdmin: false,
+      projectRole
     };
   } catch (error) {
-    console.error('Unexpected error in fetchPersonalProjects:', error);
-    return { 
-      projects: [] as Project[], 
-      userRole: 'member' as const,
-      user: null,
-      accounts: [] as AccountData[]
-    };
+    console.error('Error in fetchProjects:', error);
+    return defaultResult;
   }
 }
 
 export default function ProjectsPage() {
-  console.log('ProjectsPage rendering');
-  const data = use(fetchPersonalProjects());
-  console.log('ProjectsPage data:', JSON.stringify(data, null, 2));
+  const { projects, isSuperAdmin, projectRole } = use(fetchProjects());
 
   return (
-    <>
-      <HomeLayoutPageHeader
-        title={<Trans i18nKey="projects:projects" />}
-        description={<Trans i18nKey="projects:projectsDescription" />}
-      />
+    <div className="flex flex-col min-h-full w-full bg-gray-50">
+      <div className="px-8 py-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-semibold">
+            Projects
+          </h1>
+        </div>
+      </div>
 
-      <PageBody>
-        <ProjectsList 
-          projects={data.projects}
-          userRole={data.userRole}
-          user={data.user ?? undefined}
-          accounts={data.accounts}
-        />
-      </PageBody>
-    </>
+      <div className="px-8 pb-8">
+        <If condition={projects.length === 0}>
+          <div className="bg-white rounded-lg border">
+            <div className="p-6">
+              <ProjectsList 
+                projects={projects} 
+                userRole={isSuperAdmin ? 'admin' : projectRole} 
+              />
+            </div>
+          </div>
+        </If>
+
+        <If condition={projects.length > 0}>
+          <div className="bg-white rounded-lg border">
+            <div className="p-6">
+              <ProjectsList 
+                projects={projects} 
+                userRole={isSuperAdmin ? 'admin' : projectRole} 
+              />
+            </div>
+          </div>
+        </If>
+      </div>
+    </div>
   );
 }
