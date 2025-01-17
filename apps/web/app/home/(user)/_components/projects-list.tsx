@@ -49,10 +49,17 @@ interface Project {
 
 type UserRole = 'owner' | 'admin' | 'member';
 
+interface AccountData {
+  label: string;
+  value: string;
+  image: string | null;
+}
+
 interface ProjectsListProps {
   projects: Project[];
   userRole: UserRole;
   user?: User;
+  accounts?: AccountData[]; // Added optional accounts prop
 }
 
 interface ProjectIframeDialogProps {
@@ -157,7 +164,12 @@ const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, child
   );
 };
 
-export default function ProjectsList({ projects, userRole, user }: ProjectsListProps) {
+export default function ProjectsList({ 
+  projects, 
+  userRole, 
+  user, 
+  accounts = [] 
+}: ProjectsListProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const filteredProjects = projects.filter(project =>
@@ -191,7 +203,7 @@ export default function ProjectsList({ projects, userRole, user }: ProjectsListP
             features={{
               enableTeamCreation: true
             }}
-            accounts={[]} // Your accounts data here
+            accounts={accounts}
             onAccountChange={handleAccountChange}
           />
         </div>

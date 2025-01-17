@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 // app/home/projects/page.tsx
 import { use } from 'react';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
@@ -6,8 +5,15 @@ import { Trans } from '@kit/ui/trans';
 import { PageBody } from '@kit/ui/page';
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import ProjectsList from '../(user)/_components/projects-list';
+import type { User } from '@supabase/supabase-js';
 
 type ProjectRole = 'owner' | 'admin' | 'member';
+
+interface ExtendedUser extends User {
+  raw_app_meta_data?: {
+    role?: string;
+  };
+}
 
 interface Project {
   id: string;
@@ -32,25 +38,58 @@ interface Project {
   }[];
 }
 
+interface AccountData {
+  label: string;
+  value: string;
+  image: string | null;
+}
+
+interface AccountRow {
+  account: {
+    name: string;
+    slug: string;
+    picture_url: string | null;
+  } | null;
+}
+
+// Dummy type to satisfy eslint and provide type information
+type _Database = {
+  public: {
+    Tables: {
+      account_users: {
+        Row: AccountRow;
+      };
+    };
+  };
+};
+
+// Temporary interface to match ProjectsList component props
+interface _ProjectsListProps {
+  projects: Project[];
+  userRole: 'admin' | 'member';
+  user?: ExtendedUser;
+  accounts?: AccountData[];
+}
+
 async function fetchPersonalProjects() {
   const client = getSupabaseServerComponentClient();
   
   try {
-    const { data: { user }, error: userError } = await client.auth.getUser();
-    if (userError ?? !user) {
+    const { data: authData, error: userError } = await client.auth.getUser();
+    if (userError || !authData.user) {
       console.error('Auth error:', userError);
-      return { projects: [] as Project[], userRole: 'member' as const, user: null };
+      return { projects: [] as Project[], userRole: 'member' as const, user: null, accounts: [] as AccountData[] };
     }
 
-    const isSuperAdmin = user.app_metadata?.role === 'super-admin';
+    // Create extended user with raw_app_meta_data
+    const extendedUser: ExtendedUser = {
+      ...authData.user,
+      raw_app_meta_data: {
+        role: authData.user.app_metadata?.role
+      }
+    };
 
-    // Get all accounts for the user
-    const { data: userAccounts } = await client
-      .from('account_users')
-      .select('account_id')
-      .eq('user_id', user.id);
-
-    const accountIds = userAccounts?.map(a => a.account_id) ?? [];
+    const isSuperAdmin = authData.user.app_metadata?.role === 'super-admin';
 
     // Get personal projects
     const { data: projectsData, error: projectsError } = await client
@@ -68,8 +107,7 @@ async function fetchPersonalProjects() {
           role
         )
       `)
-      .eq('project_members.user_id', user.id)
-      .in('account_id', accountIds);
+      .eq('project_members.user_id', authData.user.id);
 
     if (projectsError) {
       throw new Error(`Failed to fetch projects: ${projectsError.message}`);
@@ -109,22 +147,28 @@ async function fetchPersonalProjects() {
       })
     );
 
-    // Get additional data needed for AccountSelector
-    const { data: accounts } = await client
-      .from('accounts')
-      .select('name, slug, picture_url')
-      .in('id', accountIds);
+    // Get all accounts for the user for the account selector
+    const { data } = await client
+      .from('account_users')
+      .select(`
+        account:account_id (
+          name,
+          slug,
+          picture_url
+        )
+      `)
+      .eq('user_id', authData.user.id);
 
-    const accountsData = accounts?.map(account => ({
-      label: account.name,
-      value: account.slug,
-      image: account.picture_url
+    const accountsData: AccountData[] = (data as AccountRow[] | null)?.map(row => ({
+      label: row.account?.name ?? '',
+      value: row.account?.slug ?? '',
+      image: row.account?.picture_url ?? null
     })) ?? [];
 
     return { 
       projects: projectsWithMembers,
       userRole: isSuperAdmin ? 'admin' as const : 'member' as const,
-      user,
+      user: extendedUser,
       accounts: accountsData
     };
   } catch (error) {
@@ -133,7 +177,7 @@ async function fetchPersonalProjects() {
       projects: [] as Project[], 
       userRole: 'member' as const,
       user: null,
-      accounts: []
+      accounts: [] as AccountData[]
     };
   }
 }
@@ -155,6 +199,7 @@ export default function ProjectsPage() {
           projects={data.projects}
           userRole={data.userRole}
           user={data.user ?? undefined}
+          accounts={data.accounts}
         />
       </PageBody>
     </>
