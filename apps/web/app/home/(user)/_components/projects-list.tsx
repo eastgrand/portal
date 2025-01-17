@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import React, { useState, ReactNode } from 'react';
-import type { User, UserAppMetadata } from '@supabase/supabase-js';
 import { Button } from "@kit/ui/button";
 import { Input } from "@kit/ui/input";
 import {
@@ -12,8 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@kit/ui/table";
-import { Users, ExternalLink, Maximize2, X, Copy, Check } from "lucide-react";
-import { AccountSelector } from '@kit/accounts/account-selector';
+import { Users, ExternalLink, Maximize2, X, Code2, Copy, Check } from "lucide-react";
 import MembersDialog from './members-dialog';
 import {
   Dialog,
@@ -49,28 +48,9 @@ interface Project {
 
 type UserRole = 'owner' | 'admin' | 'member';
 
-interface AccountData {
-  label: string;
-  value: string;
-  image: string | null;
-}
-
-// Extended user interface to handle potential metadata variations
-interface ExtendedUser extends User {
-  raw_user_meta_data?: {
-    role?: string;
-  };
-  // Explicitly merge with UserAppMetadata to resolve type incompatibility
-  app_metadata: UserAppMetadata & {
-    role?: string;
-  };
-}
-
 interface ProjectsListProps {
   projects: Project[];
   userRole: UserRole;
-  user?: ExtendedUser;
-  accounts?: AccountData[];
 }
 
 interface ProjectIframeDialogProps {
@@ -175,30 +155,8 @@ const ProjectIframeDialog: React.FC<ProjectIframeDialogProps> = ({ appUrl, child
   );
 };
 
-export default function ProjectsList({ 
-  projects, 
-  userRole: initialUserRole, 
-  user, 
-  accounts = [] 
-}: ProjectsListProps) {
+export default function ProjectsList({ projects, userRole }: ProjectsListProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  // Determine user role with multiple fallback mechanisms
-  const userRole = (() => {
-    if (initialUserRole) return initialUserRole;
-    
-    if (user) {
-      // Check various possible locations for role with nullish coalescing
-      const role = 
-        user.raw_user_meta_data?.role ?? 
-        user.app_metadata?.role ?? 
-        'member';
-      
-      return role as UserRole;
-    }
-    
-    return 'member';
-  })();
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -212,31 +170,8 @@ export default function ProjectsList({
     });
   };
 
-  const handleAccountChange = (value: string | undefined) => {
-    // Handle account change navigation
-    if (value === undefined) {
-      window.location.href = '/home/projects';
-    } else {
-      window.location.href = `/home/${value}/projects`;
-    }
-  };
-
   return (
     <div className="w-full space-y-4">
-      {user && (
-        <div className="mb-6">
-          <AccountSelector
-            user={user}
-            userRole={userRole}
-            features={{
-              enableTeamCreation: true
-            }}
-            accounts={accounts}
-            onAccountChange={handleAccountChange}
-          />
-        </div>
-      )}
-
       <Input
         placeholder="Search projects..."
         value={searchQuery}
@@ -244,7 +179,7 @@ export default function ProjectsList({
         className="max-w-sm"
       />
 
-      <div className="w-full">
+<div className="w-full">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
