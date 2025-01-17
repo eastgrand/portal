@@ -1,18 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+// app/home/projects/page.tsx
 import { use } from 'react';
 import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
+import { Trans } from '@kit/ui/trans';
+import { PageBody } from '@kit/ui/page';
 import { HomeLayoutPageHeader } from '../(user)/_components/home-page-header';
 import ProjectsList from '../(user)/_components/projects-list';
-import { PageBody } from '@kit/ui/page';
-import { Trans } from '@kit/ui/trans';
 
 type ProjectRole = 'owner' | 'admin' | 'member';
-
-interface PageProps {
-  params: {
-    account: string;
-  };
-}
 
 interface Project {
   id: string;
@@ -26,40 +20,29 @@ interface Project {
     user_id: string;
     role: ProjectRole;
   }[];
-  members: ProjectMember[];
+  members: {
+    user_id: string;
+    role: ProjectRole;
+    created_at: string;
+    updated_at: string;
+    name: string;
+    email: string;
+    avatar_url?: string;
+  }[];
 }
 
-interface ProjectMember {
-  user_id: string;
-  role: ProjectRole;
-  created_at: string;
-  updated_at: string;
-  name: string;
-  email: string;
-  avatar_url?: string;
-}
-
-async function fetchProjects(accountSlug: string) {
+async function fetchPersonalProjects() {
   const client = getSupabaseServerComponentClient();
   
   try {
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) {
-      return { projects: [], userRole: 'member' as const };
+    const { data: { user }, error: userError } = await client.auth.getUser();
+    if (userError || !user) {
+      console.error('Auth error:', userError);
+      return { projects: [] as Project[], userRole: 'member' as const, user: null };
     }
 
-    // Get the account ID from the slug
-    const { data: account } = await client
-      .from('accounts')
-      .select('id')
-      .eq('slug', accountSlug)
-      .single();
-
-    if (!account) {
-      return { projects: [], userRole: 'member' as const };
-    }
-
-    const { data: projectsData } = await client
+    // Query projects where user is a member
+    const { data: projectsData, error: projectsError } = await client
       .from('projects')
       .select(`
         id,
@@ -74,14 +57,15 @@ async function fetchProjects(accountSlug: string) {
           role
         )
       `)
-      .eq('account_id', account.id);
+      .eq('project_members.user_id', user.id);
 
-    if (!projectsData) {
-      return { projects: [], userRole: 'member' as const };
+    if (projectsError) {
+      console.error('Error fetching projects:', projectsError);
+      return { projects: [] as Project[], userRole: 'member' as const, user };
     }
 
     const projectsWithMembers = await Promise.all(
-      projectsData.map(async (project) => {
+      (projectsData ?? []).map(async (project) => {
         const { data: memberData } = await client
           .from('project_members')
           .select('user_id, role, created_at, updated_at')
@@ -114,20 +98,27 @@ async function fetchProjects(accountSlug: string) {
       })
     );
 
-    const userRole = projectsData[0]?.project_members?.find(
+    const userRole = projectsData?.[0]?.project_members?.find(
       member => member.user_id === user.id
     )?.role ?? 'member';
 
-    return { projects: projectsWithMembers, userRole };
+    return { 
+      projects: projectsWithMembers, 
+      userRole: userRole as ProjectRole,
+      user 
+    };
   } catch (error) {
-    console.error('Error fetching projects:', error);
-    return { projects: [], userRole: 'member' as const };
+    console.error('Error in fetchPersonalProjects:', error);
+    return { 
+      projects: [] as Project[], 
+      userRole: 'member' as const,
+      user: null 
+    };
   }
 }
 
-export default function ProjectsPage({ params }: PageProps) {
-  const { projects = [], userRole = 'member' } = use(fetchProjects(params.account));
-  const hasProjects = projects.length > 0;
+export default function ProjectsPage() {
+  const { projects = [], userRole = 'member', user } = use(fetchPersonalProjects());
 
   return (
     <>
@@ -137,14 +128,11 @@ export default function ProjectsPage({ params }: PageProps) {
       />
 
       <PageBody>
-        {!hasProjects ? (
-          <div>No projects yet.</div>
-        ) : (
-          <ProjectsList 
-            projects={projects} 
-            userRole={userRole}
-          />
-        )}
+        <ProjectsList 
+          projects={projects} 
+          userRole={userRole}
+          user={user ?? undefined}
+        />
       </PageBody>
     </>
   );
