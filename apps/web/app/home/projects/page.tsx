@@ -10,7 +10,7 @@ import type { User } from '@supabase/supabase-js';
 type ProjectRole = 'owner' | 'admin' | 'member';
 
 interface ExtendedUser extends User {
-  raw_app_meta_data?: {
+  raw_user_meta_data?: {
     role?: string;
   };
 }
@@ -76,20 +76,43 @@ async function fetchPersonalProjects() {
   
   try {
     const { data: authData, error: userError } = await client.auth.getUser();
+    
+    console.log('Full Auth Data:', JSON.stringify(authData, null, 2));
+    console.log('User Error:', userError);
+
     if (userError || !authData.user) {
       console.error('Auth error:', userError);
-      return { projects: [] as Project[], userRole: 'member' as const, user: null, accounts: [] as AccountData[] };
+      return { 
+        projects: [] as Project[], 
+        userRole: 'member' as const, 
+        user: null, 
+        accounts: [] as AccountData[] 
+      };
     }
 
-    // Create extended user with raw_app_meta_data
+    // Fetch raw user metadata directly from the auth.users table
+    const { data: userMetadataData, error: metadataError } = await client
+      .from('auth.users')
+      .select('raw_user_meta_data')
+      .eq('id', authData.user.id)
+      .single();
+
+    console.log('User Metadata:', JSON.stringify(userMetadataData, null, 2));
+    console.log('Metadata Error:', metadataError);
+
+    // Determine user role from metadata or default
+    const userRole = userMetadataData?.raw_user_meta_data?.role ?? 
+                     authData.user.app_metadata?.role ?? 
+                     'member';
+    const isSuperAdmin = userRole === 'super-admin';
+
+    // Create extended user with metadata
     const extendedUser: ExtendedUser = {
       ...authData.user,
-      raw_app_meta_data: {
-        role: authData.user.app_metadata?.role
+      raw_user_meta_data: {
+        role: userRole
       }
     };
-
-    const isSuperAdmin = authData.user.app_metadata?.role === 'super-admin';
 
     // Get personal projects
     const { data: projectsData, error: projectsError } = await client
@@ -108,6 +131,9 @@ async function fetchPersonalProjects() {
         )
       `)
       .eq('project_members.user_id', authData.user.id);
+
+    console.log('Projects Data:', JSON.stringify(projectsData, null, 2));
+    console.log('Projects Error:', projectsError);
 
     if (projectsError) {
       throw new Error(`Failed to fetch projects: ${projectsError.message}`);
@@ -148,7 +174,7 @@ async function fetchPersonalProjects() {
     );
 
     // Get all accounts for the user for the account selector
-    const { data } = await client
+    const { data: accountsData } = await client
       .from('account_users')
       .select(`
         account:account_id (
@@ -159,7 +185,9 @@ async function fetchPersonalProjects() {
       `)
       .eq('user_id', authData.user.id);
 
-    const accountsData: AccountData[] = (data as AccountRow[] | null)?.map(row => ({
+    console.log('Accounts Data:', JSON.stringify(accountsData, null, 2));
+
+    const accounts: AccountData[] = (accountsData as AccountRow[] | null)?.map(row => ({
       label: row.account?.name ?? '',
       value: row.account?.slug ?? '',
       image: row.account?.picture_url ?? null
@@ -169,10 +197,10 @@ async function fetchPersonalProjects() {
       projects: projectsWithMembers,
       userRole: isSuperAdmin ? 'admin' as const : 'member' as const,
       user: extendedUser,
-      accounts: accountsData
+      accounts
     };
   } catch (error) {
-    console.error('Error in fetchPersonalProjects:', error);
+    console.error('Unexpected error in fetchPersonalProjects:', error);
     return { 
       projects: [] as Project[], 
       userRole: 'member' as const,
@@ -185,7 +213,7 @@ async function fetchPersonalProjects() {
 export default function ProjectsPage() {
   console.log('ProjectsPage rendering');
   const data = use(fetchPersonalProjects());
-  console.log('ProjectsPage data:', data);
+  console.log('ProjectsPage data:', JSON.stringify(data, null, 2));
 
   return (
     <>
