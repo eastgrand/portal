@@ -238,27 +238,14 @@ export default function ProjectsPage() {
       </div>
 
       <div className="px-8 pb-8">
-        <If condition={projects.length === 0}>
-          <div className="bg-white rounded-lg border">
-            <div className="p-6">
-              <ProjectsList 
-                projects={projects} 
-                userRole={isSuperAdmin ? 'admin' : projectRole} 
-              />
-            </div>
+        <div className="bg-white rounded-lg border">
+          <div className="p-6">
+            <ProjectsList 
+              projects={projects} 
+              userRole={isSuperAdmin ? 'admin' : projectRole} 
+            />
           </div>
-        </If>
-
-        <If condition={projects.length > 0}>
-          <div className="bg-white rounded-lg border">
-            <div className="p-6">
-              <ProjectsList 
-                projects={projects} 
-                userRole={isSuperAdmin ? 'admin' : projectRole} 
-              />
-            </div>
-          </div>
-        </If>
+        </div>
       </div>
     </div>
   );
