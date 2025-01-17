@@ -80,13 +80,9 @@ export function AccountSelector({
     account,
   );
 
-  // Fixed property access path and added logging
-  const authUserRole = user?.auth.user.raw_app_meta_data?.role;
-  console.log('Auth user data:', {
-    fullAuth: user?.auth,
-    metaData: user?.auth.user.raw_app_meta_data,
-    role: authUserRole
-  });
+  const authUserRole = user.auth.user.raw_app_meta_data.role;
+  console.log('Auth role:', authUserRole);
+  console.log('Full user object:', user);
 
   const isSuperAdmin = authUserRole === 'super-admin';
   const hasTeamRole = role === 'owner' || role === 'admin';
