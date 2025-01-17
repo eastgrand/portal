@@ -1,264 +1,347 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { use } from 'react';
-import { headers } from 'next/headers';
-import { getSupabaseServerComponentClient } from '@kit/supabase/server-component-client';
+'use client';
+
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
+import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
+import { CheckCircle, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
+import { Avatar, AvatarFallback, AvatarImage } from '@kit/ui/avatar';
 import { Button } from '@kit/ui/button';
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@kit/ui/command';
 import { If } from '@kit/ui/if';
+import { Popover, PopoverContent, PopoverTrigger } from '@kit/ui/popover';
+import { Separator } from '@kit/ui/separator';
 import { Trans } from '@kit/ui/trans';
-import { PageBody } from '@kit/ui/page';
-import ProjectsList from '../(user)/_components/projects-list';
-import { EmptyStateButton } from '@kit/ui/empty-state';
-import { getUserRole } from '../[account]/projects/_lib/server/users/users.service';
+import { cn } from '@kit/ui/utils';
 
-// ProjectsList component roles
-type ProjectListRole = 'owner' | 'admin' | 'member';
+import { CreateTeamAccountDialog } from '@kit/team-accounts/components';
+import { usePersonalAccountData } from '@kit/accounts/hooks/use-personal-account-data';
 
-// Props interface for ProjectsList component
-interface ProjectsListProps {
-  projects: Project[];
-  userRole: ProjectListRole;
-}
+type UserRole = 'owner' | 'admin' | 'member' | 'super-admin';
 
-interface Project {
-  id: string;
-  name: string;
-  account_id: string;
-  created_at: string;
-  updated_at: string;
-  description: string | null;
-  app_url: string;
-  project_members: {
-    user_id: string;
-    role: ProjectListRole;
-  }[];
-  members: ProjectMember[];
-}
-
-interface ProjectMember {
-  user_id: string;
-  role: ProjectListRole;
-  created_at: string;
-  updated_at: string;
-  name: string;
-  email: string;
-  avatar_url?: string;
-}
-
-async function fetchUserAccount(userId: string): Promise<{
-  name: string;
-  email: string;
-} | null> {
-  const client = getSupabaseServerComponentClient();
-  
-  try {
-    const { data, error } = await client
-      .from('accounts')
-      .select('name, email')
-      .eq('id', userId)
-      .single();
-      
-    if (error || !data?.name || !data?.email) {
-      console.error('Error fetching user account:', error);
-      return null;
-    }
-
-    return {
-      name: data.name,
-      email: data.email
-    };
-  } catch (error) {
-    console.error('Error in fetchUserAccount:', error);
-    return null;
-  }
-}
-
-async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> {
-  const client = getSupabaseServerComponentClient();
-  
-  try {
-    const { data: memberData, error: memberError } = await client
-      .from('project_members')
-      .select('user_id, role, created_at, updated_at')
-      .eq('project_id', projectId);
-
-    if (memberError || !memberData) {
-      console.error('Error fetching project members:', memberError);
-      return [];
-    }
-
-    const members: ProjectMember[] = [];
-
-    for (const member of memberData) {
-      const userAccount = await fetchUserAccount(member.user_id);
-      
-      if (userAccount) {
-        members.push({
-          user_id: member.user_id,
-          role: member.role as ProjectListRole,
-          created_at: member.created_at,
-          updated_at: member.updated_at,
-          name: userAccount.name,
-          email: userAccount.email,
-          avatar_url: undefined
-        });
-      } else {
-        members.push({
-          user_id: member.user_id,
-          role: 'member',
-          created_at: member.created_at,
-          updated_at: member.updated_at,
-          name: 'Unknown User',
-          email: 'no-email',
-          avatar_url: undefined
-        });
-      }
-    }
-
-    return members;
-  } catch (error) {
-    console.error('Error in fetchProjectMembers:', error);
-    return [];
-  }
-}
-
-async function fetchProjects(): Promise<{
-  projects: Project[];
-  isSuperAdmin: boolean;
-  projectRole: ProjectListRole;
-}> {
-  const client = getSupabaseServerComponentClient();
-  const defaultResult = {
-    projects: [] as Project[],
-    isSuperAdmin: false,
-    projectRole: 'member' as ProjectListRole
+interface ExtendedUser extends User {
+  role?: string;
+  app_metadata: {
+    role?: string;
   };
-  
-  try {
-    // Get system role
-    const systemRole = await getUserRole(client as any);
-    const isSuperAdmin = systemRole === 'super-admin';
-    
-    // Get current user
-    const { data: { user } } = await client.auth.getUser();
-    if (!user) return defaultResult;
-    
-    // If super-admin, fetch all projects
-    if (isSuperAdmin) {
-      const { data: projectsData, error: projectsError } = await client
-        .from('projects')
-        .select(`
-          id,
-          name,
-          account_id,
-          created_at,
-          updated_at,
-          description,
-          app_url,
-          project_members (
-            user_id,
-            role
-          )
-        `);
-
-      if (projectsError || !projectsData) {
-        console.error('Error fetching projects:', projectsError);
-        return defaultResult;
-      }
-
-      const projectsWithMembers = await Promise.all(
-        projectsData.map(async (project) => ({
-          ...project,
-          members: await fetchProjectMembers(project.id)
-        }))
-      );
-
-      return {
-        projects: projectsWithMembers,
-        isSuperAdmin: true,
-        projectRole: 'admin'
+  auth?: {
+    user: {
+      app_metadata: {
+        role?: string;
       };
+    };
+  };
+}
+
+export function AccountSelector({
+  className,
+  user,
+  features,
+  account,
+  accounts,
+  selectedAccount,
+  userId,
+  collapsed = false,
+  collisionPadding = 20,
+  role = 'member',
+  onAccountChange,
+}: {
+  className?: string;
+  user: ExtendedUser;
+  account?: {
+    id: string | null;
+    name: string | null;
+    picture_url: string | null;
+  };
+  features: {
+    enableTeamCreation: boolean;
+  };
+  accounts: Array<{
+    label: string | null;
+    value: string | null;
+    image?: string | null;
+  }>;
+  selectedAccount?: string;
+  userId?: string;
+  collapsed?: boolean;
+  collisionPadding?: number;
+  role: UserRole;
+  onAccountChange: (value: string | undefined) => void;
+}) {
+  const [open, setOpen] = useState<boolean>(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
+  const router = useRouter();
+  const { t } = useTranslation('teams');
+  const { data: personalAccountData } = usePersonalAccountData(
+    userId ?? user.id,
+    account,
+  );
+
+  const isSuperAdmin = role === 'super-admin' || 
+                      user?.role === 'super-admin' || 
+                      user?.app_metadata?.role === 'super-admin' ||
+                      user?.auth?.user?.app_metadata?.role === 'super-admin';
+                      
+  const hasTeamRole = isSuperAdmin || role === 'owner' || role === 'admin';
+  const canInteractWithTeams = hasTeamRole;
+
+  console.log('Role checks:', {
+    providedRole: role,
+    isSuperAdmin,
+    hasTeamRole,
+    canInteractWithTeams,
+    userRole: user?.role,
+    appMetadataRole: user?.app_metadata?.role,
+    authMetadataRole: user?.auth?.user?.app_metadata?.role
+  });
+
+  const handleAccountSelection = (selectedValue: string) => {
+    try {
+      if (!canInteractWithTeams) {
+        console.log('User cannot interact with teams:', {
+          role,
+          hasTeamRole,
+          canInteractWithTeams
+        });
+        return;
+      }
+      
+      setOpen(false);
+      
+      if (selectedValue === 'personal') {
+        console.log('Navigating to personal projects');
+        router.push('/home/projects');
+      } else {
+        const teamPath = `/home/${selectedValue}/projects`;
+        console.log('Navigating to team path:', teamPath);
+        router.push(teamPath);
+      }
+      
+      if (onAccountChange) {
+        onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
+      }
+    } catch (error: unknown) {
+      console.error('Error during account selection:', error);
     }
+  };
 
-    // For non-super-admin users, fetch only their projects
-    const { data: projectsData, error: projectsError } = await client
-      .from('projects')
-      .select(`
-        id,
-        name,
-        account_id,
-        created_at,
-        updated_at,
-        description,
-        app_url,
-        project_members!inner (
-          user_id,
-          role
-        )
-      `)
-      .eq('project_members.user_id', user.id);
+  const value = useMemo(() => {
+    return selectedAccount ?? 'personal';
+  }, [selectedAccount]);
 
-    if (projectsError || !projectsData) {
-      console.error('Error fetching projects:', projectsError);
-      return defaultResult;
-    }
+  const selected = accounts.find((account) => account.value === value);
+  const pictureUrl = personalAccountData?.picture_url;
 
-    const projectRole = (projectsData[0]?.project_members?.[0]?.role ?? 'member') as ProjectListRole;
-    
-    const projectsWithMembers = await Promise.all(
-      projectsData.map(async (project) => ({
-        ...project,
-        members: await fetchProjectMembers(project.id)
-      }))
+  const Icon = (props: { item: string }) => {
+    return (
+      <CheckCircle
+        className={cn(
+          'ml-auto h-4 w-4',
+          value === props.item ? 'opacity-100' : 'opacity-0',
+        )}
+      />
+    );
+  };
+
+  const PersonalAccountAvatar = () =>
+    pictureUrl ? (
+      <UserAvatar pictureUrl={pictureUrl} />
+    ) : (
+      <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
     );
 
-    return {
-      projects: projectsWithMembers,
-      isSuperAdmin: false,
-      projectRole
-    };
-  } catch (error) {
-    console.error('Error in fetchProjects:', error);
-    return defaultResult;
-  }
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            data-test={'account-selector-trigger'}
+            size={collapsed ? 'icon' : 'default'}
+            variant="ghost"
+            role="combobox"
+            aria-expanded={open}
+            className={cn(
+              'dark:shadow-primary/10 group w-full min-w-0 px-2 lg:w-auto lg:max-w-fit',
+              {
+                'justify-start': !collapsed,
+                'm-auto justify-center px-2 lg:w-full': collapsed,
+              },
+              className,
+            )}
+          >
+            <If
+              condition={selected}
+              fallback={
+                <span className={'flex max-w-full items-center space-x-4'}>
+                  <PersonalAccountAvatar />
+
+                  <span
+                    className={cn('truncate', {
+                      hidden: collapsed,
+                    })}
+                  >
+                    <Trans i18nKey={'teams:personalAccount'} />
+                  </span>
+                </span>
+              }
+            >
+              {(account) => (
+                <span className={'flex max-w-full items-center space-x-4'}>
+                  <Avatar className={'h-6 w-6 rounded-sm'}>
+                    <AvatarImage src={account.image ?? undefined} />
+
+                    <AvatarFallback
+                      className={'group-hover:bg-background rounded-sm'}
+                    >
+                      {account.label ? account.label[0] : ''}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <span
+                    className={cn('truncate', {
+                      hidden: collapsed,
+                    })}
+                  >
+                    {account.label}
+                  </span>
+                </span>
+              )}
+            </If>
+
+            <CaretSortIcon
+              className={cn('ml-2 h-4 w-4 shrink-0 opacity-50', {
+                hidden: collapsed,
+              })}
+            />
+          </Button>
+        </PopoverTrigger>
+
+        <PopoverContent
+          data-test={'account-selector-content'}
+          className="w-full p-0"
+          collisionPadding={collisionPadding}
+        >
+          <Command>
+            <CommandInput placeholder={t('searchAccount')} className="h-9" />
+
+            <CommandList>
+              <CommandGroup>
+                <CommandItem
+                  onSelect={() => handleAccountSelection('personal')}
+                  value={'personal'}
+                >
+                  <PersonalAccountAvatar />
+
+                  <span className={'ml-2'}>
+                    <Trans i18nKey={'teams:personalAccount'} />
+                  </span>
+                  <Icon item={'personal'} />
+                </CommandItem>
+              </CommandGroup>
+
+              <CommandSeparator />
+
+              <If condition={accounts.length > 0}>
+                <CommandGroup
+                  heading={
+                    <Trans
+                      i18nKey={'teams:yourTeams'}
+                      values={{ teamsCount: accounts.length }}
+                    />
+                  }
+                >
+                  {(accounts ?? []).map((account) => (
+                    <CommandItem
+                      data-test={'account-selector-team'}
+                      data-name={account.label}
+                      data-slug={account.value}
+                      className={cn(
+                        'group my-1 flex justify-between transition-colors',
+                        {
+                          ['bg-muted']: value === account.value,
+                          ['cursor-default opacity-70']: !canInteractWithTeams,
+                        }
+                      )}
+                      key={account.value}
+                      value={account.value ?? ''}
+                      onSelect={(currentValue) => handleAccountSelection(currentValue)}
+                    >
+                      <div className={'flex items-center'}>
+                        <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
+                          <AvatarImage src={account.image ?? undefined} />
+
+                          <AvatarFallback
+                            className={cn('rounded-sm', {
+                              ['bg-background']: value === account.value,
+                              ['group-hover:bg-background']:
+                                value !== account.value,
+                            })}
+                          >
+                            {account.label ? account.label[0] : ''}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <span className={'mr-2 max-w-[165px] truncate'}>
+                          {account.label}
+                        </span>
+                      </div>
+
+                      <Icon item={account.value ?? ''} />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </If>
+            </CommandList>
+          </Command>
+
+          <Separator />
+
+          <If condition={features.enableTeamCreation || hasTeamRole}>
+            <div className={'p-1'}>
+              <Button
+                data-test={'create-team-account-trigger'}
+                variant="ghost"
+                size={'sm'}
+                className="w-full justify-start text-sm font-normal"
+                onClick={() => {
+                  setIsCreatingAccount(true);
+                  setOpen(false);
+                }}
+              >
+                <Plus className="mr-3 h-4 w-4" />
+
+                <span>
+                  <Trans i18nKey={'teams:createTeam'} />
+                </span>
+              </Button>
+            </div>
+          </If>
+        </PopoverContent>
+      </Popover>
+
+      <If condition={features.enableTeamCreation || hasTeamRole}>
+        <CreateTeamAccountDialog
+          isOpen={isCreatingAccount}
+          setIsOpen={setIsCreatingAccount}
+        />
+      </If>
+    </>
+  );
 }
 
-export default function ProjectsPage() {
-  const { projects, isSuperAdmin, projectRole } = use(fetchProjects());
-
+function UserAvatar(props: { pictureUrl?: string }) {
   return (
-    <div className="flex flex-col min-h-full w-full bg-gray-50">
-      <div className="px-8 py-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-semibold">
-            Projects
-          </h1>
-        </div>
-      </div>
-
-      <div className="px-8 pb-8">
-        <If condition={projects.length === 0}>
-          <div className="bg-white rounded-lg border">
-            <div className="p-6">
-              <ProjectsList 
-                projects={projects} 
-                userRole={isSuperAdmin ? 'admin' : projectRole} 
-              />
-            </div>
-          </div>
-        </If>
-
-        <If condition={projects.length > 0}>
-          <div className="bg-white rounded-lg border">
-            <div className="p-6">
-              <ProjectsList 
-                projects={projects} 
-                userRole={isSuperAdmin ? 'admin' : projectRole} 
-              />
-            </div>
-          </div>
-        </If>
-      </div>
-    </div>
+    <Avatar className={'h-6 w-6 rounded-sm'}>
+      <AvatarImage src={props.pictureUrl} />
+    </Avatar>
   );
 }

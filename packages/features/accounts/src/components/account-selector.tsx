@@ -26,16 +26,20 @@ import { cn } from '@kit/ui/utils';
 import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
 import { usePersonalAccountData } from '../hooks/use-personal-account-data';
 
-type UserRole = 'owner' | 'admin' | 'member';
+type UserRole = 'owner' | 'admin' | 'member' | 'super-admin';
+
+interface UserAuthMetadata {
+  role?: string;
+}
+
+interface ExtendedAuth {
+  user: {
+    raw_app_meta_data: UserAuthMetadata;
+  };
+}
 
 interface ExtendedUser extends User {
-  auth: {
-    user: {
-      raw_app_meta_data: {
-        role?: string;
-      };
-    };
-  };
+  auth: ExtendedAuth;
 }
 
 export function AccountSelector({
@@ -82,24 +86,28 @@ export function AccountSelector({
     account,
   );
 
-  // Debug user object and role structure
-  console.log('User object:', {
-    userAuth: user?.auth,
-    metaData: user?.auth?.user?.raw_app_meta_data,
-    role: user?.auth?.user?.raw_app_meta_data?.role,
-    providedRole: role
-  });
-
-  // Safely check for super-admin with optional chaining
-  const isSuperAdmin = user?.auth?.user?.raw_app_meta_data?.role === 'super-admin';
+  // Get the user's role from the authentication metadata first
+  const userAuthMetadata = user?.auth?.user?.raw_app_meta_data;
+  
+  // Check for super-admin first as it's in a different location
+  const isSuperAdmin = userAuthMetadata?.role === 'super-admin';
+  
+  // Only check standard roles if not a super-admin
   const hasTeamRole = isSuperAdmin || role === 'owner' || role === 'admin';
-  const canInteractWithTeams = hasTeamRole || isSuperAdmin; // Ensure super-admin always has access
+  const canInteractWithTeams = isSuperAdmin || hasTeamRole;
+
+  console.log('Role checks:', {
+    superAdmin: isSuperAdmin,
+    metadataRole: userAuthMetadata?.role,
+    providedRole: role,
+    hasTeamRole,
+    canInteractWithTeams
+  });
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
       if (!canInteractWithTeams) {
         console.log('User cannot interact with teams:', {
-          isSuperAdmin,
           role,
           hasTeamRole,
           canInteractWithTeams
@@ -109,7 +117,6 @@ export function AccountSelector({
       
       setOpen(false);
       
-      // Log the current pathname before navigation
       if (selectedValue === 'personal') {
         console.log('Navigating to personal projects');
         router.push('/home/projects');
