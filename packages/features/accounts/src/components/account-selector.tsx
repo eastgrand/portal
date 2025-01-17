@@ -2,6 +2,16 @@
 
 import { useMemo, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
+
+interface ExtendedUser extends User {
+  auth: {
+    user: {
+      raw_app_meta_data: {
+        role?: string;
+      };
+    };
+  };
+}
 import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
 import { CheckCircle, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -40,7 +50,7 @@ export function AccountSelector({
   onAccountChange,
 }: {
   className?: string;
-  user: User;
+  user: ExtendedUser;
   account?: {
     id: string | null;
     name: string | null;
@@ -71,7 +81,7 @@ export function AccountSelector({
   );
 
   // Determine permissions based on role
-  const isSuperAdmin = user?.app_metadata?.role === 'super-admin';
+  const isSuperAdmin = user?.auth?.user?.raw_app_meta_data?.role === 'super-admin';
   const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
 
   const value = useMemo(() => {
