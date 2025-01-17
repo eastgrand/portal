@@ -1,21 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
-
-interface ExtendedUser extends User {
-  auth: {
-    user: {
-      raw_app_meta_data: {
-        role?: string;
-      };
-    };
-  };
-}
 import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
 import { CheckCircle, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useRouter } from 'next/navigation';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@kit/ui/avatar';
 import { Button } from '@kit/ui/button';
@@ -35,6 +25,16 @@ import { cn } from '@kit/ui/utils';
 
 import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
 import { usePersonalAccountData } from '../hooks/use-personal-account-data';
+
+interface ExtendedUser extends User {
+  auth: {
+    user: {
+      raw_app_meta_data: {
+        role?: string;
+      };
+    };
+  };
+}
 
 export function AccountSelector({
   className,
@@ -73,8 +73,8 @@ export function AccountSelector({
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
-  const { t } = useTranslation('teams');
   const router = useRouter();
+  const { t } = useTranslation('teams');
   const { data: personalAccountData } = usePersonalAccountData(
     userId ?? user.id,
     account,
@@ -84,14 +84,38 @@ export function AccountSelector({
   const isSuperAdmin = authUserRole === 'super-admin';
   const canInteractWithTeams = role === 'owner' || role === 'admin' || isSuperAdmin;
 
+  const handleAccountSelection = (selectedValue: string) => {
+    try {
+      if (!canInteractWithTeams) {
+        console.log('User cannot interact with teams');
+        return;
+      }
+      
+      setOpen(false);
+      
+      if (selectedValue === 'personal') {
+        console.log('Navigating to personal projects');
+        router.push('/home/projects');
+      } else {
+        const teamPath = `/home/${selectedValue}/projects`;
+        console.log('Navigating to team path:', teamPath);
+        router.push(teamPath);
+      }
+      
+      if (onAccountChange) {
+        onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
+      }
+    } catch (error) {
+      console.error('Error during account selection:', error);
+    }
+  };
+
   const value = useMemo(() => {
     return selectedAccount ?? 'personal';
   }, [selectedAccount]);
 
   const selected = accounts.find((account) => account.value === value);
   const pictureUrl = personalAccountData?.picture_url;
-
-
 
   const Icon = (props: { item: string }) => {
     return (
@@ -188,15 +212,7 @@ export function AccountSelector({
             <CommandList>
               <CommandGroup>
                 <CommandItem
-                  onSelect={(_currentValue) => {
-                    setOpen(false);
-                    const newPath = '/home/projects';
-                    console.log('Navigating to:', newPath);
-                    router.push(newPath);
-                    if (onAccountChange) {
-                      onAccountChange(undefined);
-                    }
-                  }}
+                  onSelect={() => handleAccountSelection('personal')}
                   value={'personal'}
                 >
                   <PersonalAccountAvatar />
@@ -233,16 +249,7 @@ export function AccountSelector({
                       )}
                       key={account.value}
                       value={account.value ?? ''}
-                      onSelect={(currentValue) => {
-                        if (!canInteractWithTeams) return;
-                        setOpen(false);
-                        const newPath = currentValue === 'personal' ? '/home/projects' : `/home/${currentValue}/projects`;
-                        console.log('Navigating to:', newPath);
-                        router.push(newPath);
-                        if (onAccountChange) {
-                          onAccountChange(currentValue === 'personal' ? undefined : currentValue);
-                        }
-                      }}
+                      onSelect={(currentValue) => handleAccountSelection(currentValue)}
                     >
                       <div className={'flex items-center'}>
                         <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
