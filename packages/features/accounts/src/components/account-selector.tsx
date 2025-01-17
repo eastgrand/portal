@@ -92,18 +92,28 @@ export function AccountSelector({
   const pictureUrl = personalAccountData?.picture_url;
 
   const handleAccountSelection = (selectedValue: string) => {
-    if (!canInteractWithTeams) return;
-    setOpen(false);
-    
-    if (selectedValue === 'personal') {
-      router.push('/home/projects');
-    } else {
-      // Navigate to team-specific URL
-      router.push(`/home/${selectedValue}/projects`);
-    }
-    
-    if (onAccountChange) {
-      onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
+    try {
+      if (!canInteractWithTeams) {
+        console.log('User cannot interact with teams');
+        return;
+      }
+      
+      setOpen(false);
+      
+      if (selectedValue === 'personal') {
+        router.push('/home/projects');
+      } else {
+        // Navigate to team-specific URL
+        const teamPath = `/home/${selectedValue}/projects`;
+        console.log('Navigating to team:', teamPath);
+        router.push(teamPath);
+      }
+      
+      if (onAccountChange) {
+        onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
+      }
+    } catch (error) {
+      console.error('Error during account selection:', error);
     }
   };
 
@@ -239,7 +249,7 @@ export function AccountSelector({
                       )}
                       key={account.value}
                       value={account.value ?? ''}
-                      onSelect={handleAccountSelection}
+                      onSelect={(currentValue) => handleAccountSelection(currentValue)}
                     >
                       <div className={'flex items-center'}>
                         <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
