@@ -103,9 +103,9 @@ export function AccountSelector({
       
       if (selectedValue === 'personal') {
         console.log('Navigating to personal projects');
-        router.push('/home/projects');
+        router.push('/projects');
       } else {
-        const teamPath = `/home/${selectedValue}/projects`;
+        const teamPath = `/${selectedValue}/projects`;
         console.log('Navigating to team path:', teamPath);
         router.push(teamPath);
       }
