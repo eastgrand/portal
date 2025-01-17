@@ -5,6 +5,7 @@ import type { User } from '@supabase/supabase-js';
 import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
 import { CheckCircle, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'next/navigation';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@kit/ui/avatar';
 import { Button } from '@kit/ui/button';
@@ -63,6 +64,7 @@ export function AccountSelector({
   const [open, setOpen] = useState<boolean>(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
   const { t } = useTranslation('teams');
+  const router = useRouter();
   const { data: personalAccountData } = usePersonalAccountData(
     userId ?? user.id,
     account,
@@ -78,6 +80,22 @@ export function AccountSelector({
 
   const selected = accounts.find((account) => account.value === value);
   const pictureUrl = personalAccountData?.picture_url;
+
+  const handleAccountSelection = (selectedValue: string) => {
+    if (!canInteractWithTeams) return;
+    setOpen(false);
+    
+    if (selectedValue === 'personal') {
+      router.push('/home/projects');
+    } else {
+      // Navigate to team-specific URL
+      router.push(`/home/${selectedValue}/projects`);
+    }
+    
+    if (onAccountChange) {
+      onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
+    }
+  };
 
   const Icon = (props: { item: string }) => {
     return (
@@ -174,7 +192,7 @@ export function AccountSelector({
             <CommandList>
               <CommandGroup>
                 <CommandItem
-                  onSelect={() => onAccountChange(undefined)}
+                  onSelect={() => handleAccountSelection('personal')}
                   value={'personal'}
                 >
                   <PersonalAccountAvatar />
@@ -211,13 +229,7 @@ export function AccountSelector({
                       )}
                       key={account.value}
                       value={account.value ?? ''}
-                      onSelect={(currentValue) => {
-                        if (!canInteractWithTeams) return;
-                        setOpen(false);
-                        if (onAccountChange) {
-                          onAccountChange(currentValue);
-                        }
-                      }}
+                      onSelect={handleAccountSelection}
                     >
                       <div className={'flex items-center'}>
                         <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
