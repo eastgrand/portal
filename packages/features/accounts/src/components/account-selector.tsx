@@ -106,19 +106,10 @@ export function AccountSelector({
       }
       
       setOpen(false);
+      onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
       
-      if (selectedValue === 'personal') {
-        console.log('Navigating to personal projects');
-        router.push('/home/projects');
-      } else {
-        const teamPath = `/home/${selectedValue}/projects`;
-        console.log('Navigating to team path:', teamPath);
-        router.push(teamPath);
-      }
-      
-      if (onAccountChange) {
-        onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
-      }
+      // Let the parent component handle navigation instead of doing it here
+      // router.push was causing the "not found" issue
     } catch (error) {
       console.error('Error during account selection:', error);
     }
