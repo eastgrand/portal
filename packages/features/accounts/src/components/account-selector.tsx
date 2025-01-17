@@ -80,35 +80,24 @@ export function AccountSelector({
     account,
   );
 
-  // Add careful debug logging with existence checks
-  console.log('Debug user object:', {
-    hasUser: !!user,
-    hasAuth: user && !!user.auth,
-    hasAuthUser: user?.auth?.user,
-    hasMetaData: user?.auth?.user?.raw_app_meta_data,
-    userObject: user
-  });
-
-  const authUserRole = user?.auth?.user?.raw_app_meta_data?.role;
-  console.log('Auth role:', authUserRole);
-
+  const authUserRole = user.auth.user.raw_app_meta_data.role;
   const isSuperAdmin = authUserRole === 'super-admin';
   const hasTeamRole = role === 'owner' || role === 'admin';
   const canInteractWithTeams = isSuperAdmin || hasTeamRole;
 
-  console.log('Permission checks:', {
-    authUserRole,
+  console.log('Account selector props:', {
+    userId: user?.id,
+    email: user?.email,
+    role,
     isSuperAdmin,
-    hasTeamRole,
-    canInteractWithTeams,
-    role
+    hasTeamRole
   });
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
       if (!canInteractWithTeams) {
         console.log('User cannot interact with teams:', {
-          authUserRole,
+          role,
           isSuperAdmin,
           hasTeamRole,
           canInteractWithTeams
