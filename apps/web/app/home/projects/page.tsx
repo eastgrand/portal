@@ -135,10 +135,16 @@ async function fetchProjects(): Promise<{
     
     // Get current user
     const { data: { user } } = await client.auth.getUser();
-    if (!user) return defaultResult;
+    if (!user) {
+      console.log('No user found');
+      return defaultResult;
+    }
+    
+    console.log('Current user:', user.id);
     
     // If super-admin, fetch all projects
     if (isSuperAdmin) {
+      console.log('User is super-admin');
       const { data: projectsData, error: projectsError } = await client
         .from('projects')
         .select(`
@@ -190,17 +196,26 @@ async function fetchProjects(): Promise<{
           role
         )
       `)
-      .eq('project_members.user_id', user.id)
-      .or('role.eq.owner,role.eq.member', { foreignTable: 'project_members' });
+      .eq('project_members.user_id', user.id);
+      // Temporarily removing the role filter to see all projects
+      // .or('role.eq.owner,role.eq.member', { foreignTable: 'project_members' });
 
-    if (projectsError || !projectsData) {
+    if (projectsError) {
       console.error('Error fetching projects:', projectsError);
+      return defaultResult;
+    }
+
+    console.log('Projects data:', projectsData);
+
+    if (!projectsData) {
+      console.log('No projects data found');
       return defaultResult;
     }
 
     // Get the highest role if user has multiple roles
     const projectRole = projectsData.reduce((highestRole, project) => {
       const userRole = project.project_members?.[0]?.role as ProjectListRole;
+      console.log('Project role:', project.id, userRole);
       if (userRole === 'owner') return 'owner';
       if (userRole === 'admin' && highestRole !== 'owner') return 'admin';
       return highestRole;
@@ -212,6 +227,8 @@ async function fetchProjects(): Promise<{
         members: await fetchProjectMembers(project.id)
       }))
     );
+
+    console.log('Final projects with members:', projectsWithMembers);
 
     return {
       projects: projectsWithMembers,
