@@ -1,5 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-floating-promises */
-/* eslint-disable react-hooks/rules-of-hooks */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -48,7 +48,7 @@ export default function ProjectsPage() {
       .eq('project_id', projectId);
 
     return Promise.all(
-      (memberData || []).map(async (member: { 
+      (memberData ?? []).map(async (member: { 
         user_id: string; 
         role: string; 
         created_at: string; 
