@@ -7,10 +7,10 @@ type ProjectListRole = 'owner' | 'admin' | 'member';
 interface Project {
   id: string;
   name: string;
+  description: string | null;
   account_id: string;
   created_at: string;
   updated_at: string;
-  description: string | null;
   app_url: string;
   project_members: {
     user_id: string;
@@ -29,6 +29,31 @@ interface ProjectMember {
   avatar_url?: string;
 }
 
+// Database row types
+type AccountRow = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type ProjectRow = {
+  id: string;
+  name: string;
+  description: number | string | null;
+  account_id: string;
+  created_at: string;
+  updated_at: string;
+  app_url: string;
+};
+
+type ProjectMemberRow = {
+  project_id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
+  updated_at: string;
+};
+
 async function fetchUserAccount(userId: string): Promise<{
   name: string;
   email: string;
@@ -38,7 +63,7 @@ async function fetchUserAccount(userId: string): Promise<{
   try {
     const { data, error } = await client
       .from('accounts')
-      .select('name, email')
+      .select()
       .eq('id', userId)
       .single();
       
@@ -47,9 +72,10 @@ async function fetchUserAccount(userId: string): Promise<{
       return null;
     }
 
+    const account = data as AccountRow;
     return {
-      name: data.name,
-      email: data.email
+      name: account.name,
+      email: account.email
     };
   } catch (error) {
     console.error('Error in fetchUserAccount:', error);
@@ -63,7 +89,7 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
   try {
     const { data: memberData, error: memberError } = await client
       .from('project_members')
-      .select('user_id, role, created_at, updated_at')
+      .select()
       .eq('project_id', projectId);
 
     if (memberError || !memberData) {
@@ -72,8 +98,9 @@ async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> 
     }
 
     const members: ProjectMember[] = [];
+    const projectMembers = memberData as ProjectMemberRow[];
 
-    for (const member of memberData) {
+    for (const member of projectMembers) {
       const userAccount = await fetchUserAccount(member.user_id);
       
       if (userAccount) {
@@ -106,58 +133,51 @@ async function fetchProjects(): Promise<Project[]> {
       return [];
     }
 
-    const { data: memberProjects, error: memberError } = await client
+    const { data: memberData, error: memberError } = await client
       .from('project_members')
-      .select(`
-        project:projects (
-          id,
-          name,
-          account_id,
-          created_at,
-          updated_at,
-          description,
-          app_url,
-          project_members (
-            user_id,
-            role
-          )
-        )
-      `)
+      .select()
       .eq('user_id', user.id);
 
-    if (memberError || !memberProjects) {
-      console.error('Error fetching member projects:', memberError);
+    if (memberError || !memberData) {
+      console.error('Error fetching user projects:', memberError);
       return [];
     }
 
-    // First cast to unknown, then to our expected type for safety
-    const projectsData = memberProjects as unknown as Array<{
-      project: {
-        id: string;
-        name: string;
-        account_id: string;
-        created_at: string;
-        updated_at: string;
-        description: string | null;
-        app_url: string;
-        project_members: {
-          user_id: string;
-          role: ProjectListRole;
-        }[];
-      } | null;
-    }>;
+    const userProjects = memberData as ProjectMemberRow[];
+    if (userProjects.length === 0) {
+      return [];
+    }
 
-    const validProjects = projectsData.filter(
-      (item): item is typeof projectsData[number] & { project: NonNullable<typeof projectsData[number]['project']> } => 
-        item.project !== null
-    );
+    const projectIds = userProjects.map(up => up.project_id);
+    const { data: rawProjects, error: projectsError } = await client
+      .from('projects')
+      .select()
+      .in('id', projectIds);
 
-    const projects = await Promise.all(
-      validProjects.map(async ({ project }): Promise<Project> => {
+    if (projectsError || !rawProjects) {
+      console.error('Error fetching projects:', projectsError);
+      return [];
+    }
+
+    const projectsData = rawProjects as ProjectRow[];
+    const projects: Project[] = await Promise.all(
+      projectsData.map(async (project): Promise<Project> => {
         const members = await fetchProjectMembers(project.id);
+        const project_members = members.map(m => ({
+          user_id: m.user_id,
+          role: m.role
+        }));
+
         return {
-          ...project,
-          members
+          id: project.id,
+          name: project.name,
+          description: project.description?.toString() ?? null,
+          account_id: project.account_id,
+          created_at: project.created_at,
+          updated_at: project.updated_at,
+          app_url: project.app_url,
+          members,
+          project_members
         };
       })
     );
