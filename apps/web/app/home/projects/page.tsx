@@ -43,6 +43,10 @@ interface ProjectData {
 interface FetchResults {
   projects: Project[];
   debugLogs: string[];
+  authError?: {
+    message: string;
+    status: number;
+  };
 }
 
 async function fetchProjects(): Promise<FetchResults> {
@@ -59,8 +63,16 @@ async function fetchProjects(): Promise<FetchResults> {
     addLog(`Auth getUser result: ${user?.id}`);
     
     if (userError) {
+      const errorMessage = userError.message || 'Authentication error occurred';
       addLog(`Error getting user: ${JSON.stringify(userError)}`);
-      return { projects: [], debugLogs };
+      return { 
+        projects: [], 
+        debugLogs,
+        authError: {
+          message: errorMessage,
+          status: userError.status ?? 400
+        }
+      };
     }
     
     if (!user) {
@@ -149,7 +161,28 @@ async function fetchProjects(): Promise<FetchResults> {
 
 export default function ProjectsPage() {
   console.log('ProjectsPage rendering');
-  const { projects, debugLogs } = use(fetchProjects());
+  const { projects, debugLogs, authError } = use(fetchProjects());
+  
+  if (authError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] w-full">
+        <div className="text-center max-w-md p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            Authentication Required
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Please sign in to view your projects.
+          </p>
+          <a
+            href="/auth/signin"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Sign In
+          </a>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="flex flex-col min-h-full w-full bg-gray-50">
