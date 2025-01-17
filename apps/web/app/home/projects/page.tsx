@@ -63,7 +63,7 @@ export default async function ProjectsPage() {
         .eq('project_id', project.id);
 
       const members = await Promise.all(
-        (memberData || []).map(async (member: { 
+        (memberData ?? []).map(async (member: { 
           user_id: string; 
           role: string; 
           created_at: string; 
