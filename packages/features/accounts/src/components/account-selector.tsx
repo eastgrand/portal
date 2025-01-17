@@ -39,7 +39,7 @@ export function AccountSelector({
   user,
   features,
   account,
-  accounts,
+  accounts = [],
   selectedAccount,
   collapsed = false,
   collisionPadding = 20,
@@ -81,8 +81,9 @@ export function AccountSelector({
 
   const handleAccountSelection = (selectedValue: string) => {
     try {
-      if (!canInteractWithTeams) {
-        console.log('User cannot interact with teams:', {
+      if (!selectedValue || !canInteractWithTeams) {
+        console.log('Invalid selection or user cannot interact with teams:', {
+          selectedValue,
           role,
           hasTeamRole,
           canInteractWithTeams
@@ -92,20 +93,20 @@ export function AccountSelector({
       
       setOpen(false);
       
-      if (selectedValue === 'personal') {
+      const isPersonal = selectedValue === 'personal';
+      if (isPersonal) {
         console.log('Navigating to personal projects');
-        router.push('/home/projects');
+        router.push('/projects');
+        onAccountChange?.(undefined);
       } else {
-        const teamPath = `/home/${selectedValue}/projects`;
+        const teamPath = `/teams/${selectedValue}/projects`;
         console.log('Navigating to team path:', teamPath);
         router.push(teamPath);
-      }
-      
-      if (onAccountChange) {
-        onAccountChange(selectedValue === 'personal' ? undefined : selectedValue);
+        onAccountChange?.(selectedValue);
       }
     } catch (error) {
-      console.error('Error during account selection:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Error during account selection:', errorMessage);
     }
   };
 
@@ -175,7 +176,7 @@ export function AccountSelector({
                     <AvatarFallback
                       className={'group-hover:bg-background rounded-sm'}
                     >
-                      {account.label ? account.label[0] : ''}
+                      {account.label?.[0] ?? ''}
                     </AvatarFallback>
                   </Avatar>
 
@@ -232,7 +233,7 @@ export function AccountSelector({
                     />
                   }
                 >
-                  {(accounts ?? []).map((account) => (
+                  {accounts.map((account) => (
                     <CommandItem
                       data-test={'account-selector-team'}
                       data-name={account.label}
@@ -259,7 +260,7 @@ export function AccountSelector({
                                 value !== account.value,
                             })}
                           >
-                            {account.label ? account.label[0] : ''}
+                            {account.label?.[0] ?? ''}
                           </AvatarFallback>
                         </Avatar>
 
