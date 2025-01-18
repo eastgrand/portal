@@ -81,7 +81,10 @@ async function JoinTeamAccountPage(props: JoinTeamAccountPageProps) {
   // if the user can read the account, then they are already in the account
   const account = await api
     .getTeamAccountById(invitation.account.id)
-    .catch(() => undefined);
+    .catch((error: unknown) => {
+      console.error('Failed to get team account:', error);
+      return undefined;
+    });
 
   // if the user is already in the account redirect to the home page
   if (account) {
@@ -105,8 +108,8 @@ async function JoinTeamAccountPage(props: JoinTeamAccountPageProps) {
   // we redirect them to the sign in page with the invite token
   const signOutNext = `${pathsConfig.auth.signIn}?invite_token=${token}`;
 
-  // once the user accepts the invitation, we redirect them to the account home page
-  const accountHome = pathsConfig.app.accountHome.replace(
+  // once the user accepts the invitation, we redirect them to the projects page
+  const projectsPath = pathsConfig.app.projects.replace(
     '[account]',
     invitation.account.slug,
   );
@@ -121,7 +124,7 @@ async function JoinTeamAccountPage(props: JoinTeamAccountPageProps) {
         invitation={invitation}
         paths={{
           signOutNext,
-          accountHome,
+          accountHome: projectsPath,
         }}
       />
     </AuthLayoutShell>
