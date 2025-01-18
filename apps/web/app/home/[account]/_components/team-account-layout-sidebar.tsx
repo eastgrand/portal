@@ -5,13 +5,13 @@ import type { User } from '@supabase/supabase-js';
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
+  //SidebarFooter,
   SidebarHeader,
   useSidebar,
 } from '@kit/ui/shadcn-sidebar';
 import { cn } from '@kit/ui/utils';
 
-import { ProfileAccountDropdownContainer } from '~/components//personal-account-dropdown-container';
+//import { ProfileAccountDropdownContainer } from '~/components//personal-account-dropdown-container';
 import { TeamAccountNotifications } from '~/home/[account]/_components/team-account-notifications';
 
 import { TeamAccountAccountsSelector } from '../_components/team-account-accounts-selector';
@@ -81,11 +81,11 @@ function SidebarContainer(props: {
         <TeamAccountLayoutSidebarNavigation account={account} />
       </SidebarContent>
 
-      <SidebarFooter>
+      {/*<SidebarFooter>
         <SidebarContent>
           <ProfileAccountDropdownContainer user={props.user} />
         </SidebarContent>
-      </SidebarFooter>
+      </SidebarFooter>*/}
     </Sidebar>
   );
 }

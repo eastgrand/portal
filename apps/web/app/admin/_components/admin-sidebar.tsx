@@ -8,7 +8,7 @@ import { LayoutDashboard, Users } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
-  //SidebarFooter,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -19,7 +19,7 @@ import {
 } from '@kit/ui/shadcn-sidebar';
 
 import { AppLogo } from '~/components/app-logo';
-//import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
+import { ProfileAccountDropdownContainer } from '~/components/personal-account-dropdown-container';
 
 export function AdminSidebar() {
   const path = usePathname();
@@ -61,9 +61,9 @@ export function AdminSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        {/*<SidebarFooter>
+        <SidebarFooter>
           <ProfileAccountDropdownContainer />
-        </SidebarFooter>*/}
+        </SidebarFooter>
       </Sidebar>
     </SidebarProvider>
   );
