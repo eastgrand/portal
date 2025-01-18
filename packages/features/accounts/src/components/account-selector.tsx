@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -67,10 +68,6 @@ export function AccountSelector({
     userId ?? user.id,
     account,
   );
-
-  // Determine permissions based on role
-  const isSuperAdmin = user?.app_metadata?.role === 'super-admin';
-  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
 
   const value = useMemo(() => {
     return selectedAccount ?? 'personal';
@@ -202,17 +199,9 @@ export function AccountSelector({
                       data-test={'account-selector-team'}
                       data-name={account.label}
                       data-slug={account.value}
-                      className={cn(
-                        'group my-1 flex justify-between transition-colors',
-                        {
-                          ['bg-muted']: value === account.value,
-                          ['cursor-default opacity-70']: !canInteractWithTeams,
-                        }
-                      )}
                       key={account.value}
                       value={account.value ?? ''}
                       onSelect={(currentValue) => {
-                        if (!canInteractWithTeams) return;
                         setOpen(false);
                         if (onAccountChange) {
                           onAccountChange(currentValue);
@@ -249,7 +238,7 @@ export function AccountSelector({
 
           <Separator />
 
-          <If condition={features.enableTeamCreation || isSuperAdmin}>
+          <If condition={features.enableTeamCreation}>
             <div className={'p-1'}>
               <Button
                 data-test={'create-team-account-trigger'}
@@ -272,7 +261,7 @@ export function AccountSelector({
         </PopoverContent>
       </Popover>
 
-      <If condition={features.enableTeamCreation || isSuperAdmin}>
+      <If condition={features.enableTeamCreation}>
         <CreateTeamAccountDialog
           isOpen={isCreatingAccount}
           setIsOpen={setIsCreatingAccount}
