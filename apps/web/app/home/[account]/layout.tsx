@@ -44,18 +44,12 @@ function SidebarLayout({
 
           <div className="flex w-full">
             <aside className="fixed top-16 h-[calc(100vh-4rem)] bg-white border-r">
-              <div className="hidden">
-                <TeamAccountLayoutSidebar
-                  account={account}
-                  accountId={data.account.id}
-                  accounts={data.accounts.map(({ name, slug, picture_url }) => ({
-                    label: name,
-                    value: slug,
-                    image: picture_url
-                  }))}
-                  user={data.user}
-                />
-              </div>
+              <TeamAccountLayoutSidebar
+                account={account}
+                accountId={data.account.id}
+                accounts={[]} // Pass empty array to hide the dropdown
+                user={data.user}
+              />
             </aside>
             
             <main 
