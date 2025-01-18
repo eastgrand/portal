@@ -51,6 +51,7 @@ function SidebarLayout({
                   label: name,
                   value: slug,
                   image: picture_url,
+                  className: 'hidden' // Hide the accounts dropdown while keeping functionality
                 }))}
                 user={data.user}
               />
