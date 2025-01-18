@@ -1,7 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { CaretSortIcon, PersonIcon } from '@radix-ui/react-icons';
 import { CheckCircle, Plus } from 'lucide-react';
@@ -23,42 +22,24 @@ import { Separator } from '@kit/ui/separator';
 import { Trans } from '@kit/ui/trans';
 import { cn } from '@kit/ui/utils';
 
-import { CreateTeamAccountDialog } from '../../../../features/team-accounts/src/components/create-team-account-dialog';
-
-type UserRole = 'owner' | 'admin' | 'member' | 'super-admin';
-
-interface ExtendedUser extends Omit<User, 'role'> {
-  role?: UserRole;
-  app_metadata: {
-    role?: UserRole;
-  };
-}
-
-function SelectionIcon({ isSelected }: { isSelected: boolean }) {
-  return (
-    <CheckCircle
-      className={cn(
-        'ml-auto h-4 w-4',
-        isSelected ? 'opacity-100' : 'opacity-0',
-      )}
-    />
-  );
-}
+import { CreateTeamAccountDialog } from '../../../team-accounts/src/components/create-team-account-dialog';
+import { usePersonalAccountData } from '../hooks/use-personal-account-data';
 
 export function AccountSelector({
   className,
   user,
   features,
   account,
-  accounts = [],
+  accounts,
   selectedAccount,
+  userId,
   collapsed = false,
   collisionPadding = 20,
-  role = 'member',
+  userRole = 'member',
   onAccountChange,
 }: {
   className?: string;
-  user: ExtendedUser;
+  user: User;
   account?: {
     id: string | null;
     name: string | null;
@@ -73,116 +54,48 @@ export function AccountSelector({
     image?: string | null;
   }>;
   selectedAccount?: string;
+  userId?: string;
   collapsed?: boolean;
   collisionPadding?: number;
-  role: UserRole;
+  userRole?: 'member' | 'owner' | 'admin';
   onAccountChange: (value: string | undefined) => void;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState<boolean>(false);
-  const router = useRouter();
   const { t } = useTranslation('teams');
+  const { data: personalAccountData } = usePersonalAccountData(
+    userId ?? user.id,
+    account,
+  );
 
-  const isSuperAdmin = role === 'super-admin' || 
-                      user?.role === 'super-admin' || 
-                      user?.app_metadata?.role === 'super-admin';
-                      
-  const hasTeamRole = isSuperAdmin || role === 'owner' || role === 'admin';
-  const canInteractWithTeams = Boolean(hasTeamRole);
-
-  const handleAccountSelection = useCallback((selectedValue: string) => {
-    try {
-      if (!selectedValue) {
-        console.log('Invalid selection:', { selectedValue });
-        return;
-      }
-
-      const isPersonal = selectedValue === 'personal';
-
-      // Only check team permissions for non-personal selections
-      if (!isPersonal && !canInteractWithTeams) {
-        console.log('User cannot interact with teams:', {
-          role,
-          hasTeamRole,
-          canInteractWithTeams
-        });
-        return;
-      }
-
-      setOpen(false);
-      
-      const path = isPersonal ? '/home/projects' : `/home/${selectedValue}/projects`;
-      router.push(path);
-      
-      if (onAccountChange) {
-        onAccountChange(isPersonal ? undefined : selectedValue);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Error during account selection:', errorMessage);
-    }
-  }, [canInteractWithTeams, hasTeamRole, onAccountChange, role, router]);
+  // Determine permissions based on role
+  const isSuperAdmin = user?.app_metadata?.role === 'super-admin';
+  const canInteractWithTeams = userRole === 'owner' || userRole === 'admin' || isSuperAdmin;
 
   const value = useMemo(() => {
     return selectedAccount ?? 'personal';
   }, [selectedAccount]);
 
   const selected = accounts.find((account) => account.value === value);
-  const pictureUrl = account?.picture_url;
+  const pictureUrl = personalAccountData?.picture_url;
 
-  const PersonalAccountAvatar = () => (
+  const Icon = (props: { item: string }) => {
+    return (
+      <CheckCircle
+        className={cn(
+          'ml-auto h-4 w-4',
+          value === props.item ? 'opacity-100' : 'opacity-0',
+        )}
+      />
+    );
+  };
+
+  const PersonalAccountAvatar = () =>
     pictureUrl ? (
       <UserAvatar pictureUrl={pictureUrl} />
     ) : (
       <PersonIcon className="h-5 min-h-5 w-5 min-w-5" />
-    )
-  );
-
-  const commandItems = useMemo(() => {
-    if (!Array.isArray(accounts)) return [];
-    
-    return accounts.map((account) => {
-      if (!account?.value) return null;
-      
-      return (
-        <CommandItem
-          key={account.value}
-          data-test={'account-selector-team'}
-          data-name={account.label}
-          data-slug={account.value}
-          className={cn(
-            'group my-1 flex justify-between transition-colors',
-            {
-              ['bg-muted']: value === account.value,
-              ['cursor-default opacity-70']: !canInteractWithTeams,
-            }
-          )}
-          value={account.value}
-          onSelect={(currentValue) => handleAccountSelection(currentValue)}
-        >
-          <div className={'flex items-center'}>
-            <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
-              <AvatarImage src={account.image ?? undefined} />
-              <AvatarFallback
-                className={cn('rounded-sm', {
-                  ['bg-background']: value === account.value,
-                  ['group-hover:bg-background']: value !== account.value,
-                })}
-              >
-                {account.label?.[0] ?? ''}
-              </AvatarFallback>
-            </Avatar>
-
-            <span className={'mr-2 max-w-[165px] truncate'}>
-              {account.label}
-            </span>
-          </div>
-
-          <SelectionIcon isSelected={value === account.value} />
-        </CommandItem>
-      );
-    }).filter(Boolean);
-  }, [accounts, value, canInteractWithTeams, handleAccountSelection]);
+    );
 
   return (
     <>
@@ -208,6 +121,7 @@ export function AccountSelector({
               fallback={
                 <span className={'flex max-w-full items-center space-x-4'}>
                   <PersonalAccountAvatar />
+
                   <span
                     className={cn('truncate', {
                       hidden: collapsed,
@@ -222,8 +136,11 @@ export function AccountSelector({
                 <span className={'flex max-w-full items-center space-x-4'}>
                   <Avatar className={'h-6 w-6 rounded-sm'}>
                     <AvatarImage src={account.image ?? undefined} />
-                    <AvatarFallback className={'group-hover:bg-background rounded-sm'}>
-                      {account.label?.[0] ?? ''}
+
+                    <AvatarFallback
+                      className={'group-hover:bg-background rounded-sm'}
+                    >
+                      {account.label ? account.label[0] : ''}
                     </AvatarFallback>
                   </Avatar>
 
@@ -253,40 +170,86 @@ export function AccountSelector({
         >
           <Command>
             <CommandInput placeholder={t('searchAccount')} className="h-9" />
+
             <CommandList>
               <CommandGroup>
                 <CommandItem
-                  onSelect={() => handleAccountSelection('personal')}
+                  onSelect={() => onAccountChange(undefined)}
                   value={'personal'}
                 >
                   <PersonalAccountAvatar />
+
                   <span className={'ml-2'}>
                     <Trans i18nKey={'teams:personalAccount'} />
                   </span>
-                  <SelectionIcon isSelected={value === 'personal'} />
+                  <Icon item={'personal'} />
                 </CommandItem>
               </CommandGroup>
 
               <CommandSeparator />
 
-              {commandItems.length > 0 && (
+              <If condition={accounts.length > 0}>
                 <CommandGroup
                   heading={
                     <Trans
                       i18nKey={'teams:yourTeams'}
-                      values={{ teamsCount: commandItems.length }}
+                      values={{ teamsCount: accounts.length }}
                     />
                   }
                 >
-                  {commandItems}
+                  {(accounts ?? []).map((account) => (
+                    <CommandItem
+                      data-test={'account-selector-team'}
+                      data-name={account.label}
+                      data-slug={account.value}
+                      className={cn(
+                        'group my-1 flex justify-between transition-colors',
+                        {
+                          ['bg-muted']: value === account.value,
+                          ['cursor-default opacity-70']: !canInteractWithTeams,
+                        }
+                      )}
+                      key={account.value}
+                      value={account.value ?? ''}
+                      onSelect={(currentValue) => {
+                        if (!canInteractWithTeams) return;
+                        setOpen(false);
+                        if (onAccountChange) {
+                          onAccountChange(currentValue);
+                        }
+                      }}
+                    >
+                      <div className={'flex items-center'}>
+                        <Avatar className={'mr-2 h-6 w-6 rounded-sm'}>
+                          <AvatarImage src={account.image ?? undefined} />
+
+                          <AvatarFallback
+                            className={cn('rounded-sm', {
+                              ['bg-background']: value === account.value,
+                              ['group-hover:bg-background']:
+                                value !== account.value,
+                            })}
+                          >
+                            {account.label ? account.label[0] : ''}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <span className={'mr-2 max-w-[165px] truncate'}>
+                          {account.label}
+                        </span>
+                      </div>
+
+                      <Icon item={account.value ?? ''} />
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
-              )}
+              </If>
             </CommandList>
           </Command>
 
           <Separator />
 
-          {(features.enableTeamCreation || hasTeamRole) && (
+          <If condition={features.enableTeamCreation || isSuperAdmin}>
             <div className={'p-1'}>
               <Button
                 data-test={'create-team-account-trigger'}
@@ -299,29 +262,30 @@ export function AccountSelector({
                 }}
               >
                 <Plus className="mr-3 h-4 w-4" />
+
                 <span>
                   <Trans i18nKey={'teams:createTeam'} />
                 </span>
               </Button>
             </div>
-          )}
+          </If>
         </PopoverContent>
       </Popover>
 
-      {(features.enableTeamCreation || hasTeamRole) && (
+      <If condition={features.enableTeamCreation || isSuperAdmin}>
         <CreateTeamAccountDialog
           isOpen={isCreatingAccount}
           setIsOpen={setIsCreatingAccount}
         />
-      )}
+      </If>
     </>
   );
 }
 
-function UserAvatar({ pictureUrl }: { pictureUrl?: string }) {
+function UserAvatar(props: { pictureUrl?: string }) {
   return (
     <Avatar className={'h-6 w-6 rounded-sm'}>
-      <AvatarImage src={pictureUrl} />
+      <AvatarImage src={props.pictureUrl} />
     </Avatar>
   );
 }
