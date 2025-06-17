@@ -26,6 +26,11 @@ export function HomeMenuNavigation(props: { workspace: UserWorkspace }) {
       end?: boolean | ((path: string) => boolean);
     }>
   >((acc, item) => {
+    // Skip the "Help" section in the top menu
+    if ('label' in item && item.label === 'common:routes.help') {
+      return acc;
+    }
+    
     if ('children' in item) {
       return [...acc, ...item.children];
     }
