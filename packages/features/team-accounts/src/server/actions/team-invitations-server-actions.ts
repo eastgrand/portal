@@ -124,7 +124,21 @@ export const acceptInvitationAction = enhanceAction(
     // Increase the seats for the account
     await perSeatBillingService.increaseSeats(accountId);
 
-    return redirect(nextPath);
+    // Get the account slug for the redirect
+    const { data: account } = await client
+      .from('accounts')
+      .select('slug')
+      .eq('id', accountId)
+      .single();
+
+    if (!account?.slug) {
+      throw new Error('Failed to get account slug for redirect');
+    }
+
+    // Construct the correct redirect URL using the account slug
+    const redirectUrl = nextPath.replace('[account]', account.slug);
+
+    return redirect(redirectUrl);
   },
   {},
 );

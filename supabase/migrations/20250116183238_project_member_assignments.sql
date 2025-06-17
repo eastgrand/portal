@@ -78,15 +78,23 @@ as $$
 declare
     target_account_id uuid;
     target_role varchar(50);
+    
+    -- Create a variable to store the account slug
+    target_account_slug text;
 begin
-    -- Get the invitation details
-    select account_id, role into target_account_id, target_role
-    from public.invitations
-    where invite_token = token and expires_at > now();
+    -- Get the invitation details and account slug
+    select i.account_id, i.role, a.slug 
+    into target_account_id, target_role, target_account_slug
+    from public.invitations i
+    join public.accounts a on a.id = i.account_id
+    where i.invite_token = token and i.expires_at > now();
     
     if not found then
         raise exception 'Invalid or expired invitation token';
     end if;
+
+    -- Store the account slug in a session variable that can be retrieved later
+    perform set_config('app.account_slug', target_account_slug, false);
 
     -- Add user to account membership
     insert into public.accounts_memberships(
@@ -118,6 +126,7 @@ begin
     delete from public.invitations
     where invite_token = token;
 
+    -- Return the account ID (maintains original return type)
     return target_account_id;
 end;
 $$;
