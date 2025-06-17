@@ -958,34 +958,63 @@ export function SidebarNavigation({
                             end,
                           );
 
+                          // Check if this is a PDF link that should open in a new tab
+                          const isPdf = path.toLowerCase().endsWith('.pdf');
+
                           return (
                             <SidebarMenuButton
                               asChild
                               isActive={isActive}
                               tooltip={child.label}
                             >
-                              <Link
-                                className={cn('flex items-center', {
-                                  'mx-auto w-full !gap-0 [&>svg]:flex-1':
-                                    minimized,
-                                })}
-                                href={path}
-                              >
-                                {child.Icon}
-                                <span
-                                  className={cn(
-                                    'w-auto transition-opacity duration-300',
-                                    {
-                                      'w-0 opacity-0': minimized,
-                                    },
-                                  )}
+                              {isPdf ? (
+                                <a 
+                                  className={cn('flex items-center', {
+                                    'mx-auto w-full !gap-0 [&>svg]:flex-1': minimized,
+                                  })}
+                                  href={path}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                 >
-                                  <Trans
-                                    i18nKey={child.label}
-                                    defaults={child.label}
-                                  />
-                                </span>
-                              </Link>
+                                  {child.Icon}
+                                  <span
+                                    className={cn(
+                                      'w-auto transition-opacity duration-300',
+                                      {
+                                        'w-0 opacity-0': minimized,
+                                      },
+                                    )}
+                                  >
+                                    <Trans
+                                      i18nKey={child.label}
+                                      defaults={child.label}
+                                    />
+                                  </span>
+                                </a>
+                              ) : (
+                                <Link
+                                  className={cn('flex items-center', {
+                                    'mx-auto w-full !gap-0 [&>svg]:flex-1':
+                                      minimized,
+                                  })}
+                                  href={path}
+                                >
+                                  {child.Icon}
+                                  <span
+                                    className={cn(
+                                      'w-auto transition-opacity duration-300',
+                                      {
+                                        'w-0 opacity-0': minimized,
+                                      },
+                                    )}
+                                  >
+                                    <Trans
+                                      i18nKey={child.label}
+                                      defaults={child.label}
+                                    />
+                                  </span>
+                                </Link>
+                              )}
                             </SidebarMenuButton>
                           );
                         };

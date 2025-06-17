@@ -1,4 +1,4 @@
-import { CreditCard, FolderKanban, User } from 'lucide-react';
+import { CreditCard, FolderKanban, HelpCircle, User } from 'lucide-react';
 import { z } from 'zod';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
@@ -35,6 +35,16 @@ const routes = [
           }
         : undefined,
     ].filter((route) => !!route),
+  },
+  {
+    label: 'common:routes.help',
+    children: [
+      {
+        label: 'common:routes.userGuide',
+        path: '/docs/user-guide.pdf',
+        Icon: <HelpCircle className={iconClasses} />,
+      },
+    ],
   },
 ] satisfies z.infer<typeof NavigationConfigSchema>['routes'];
 

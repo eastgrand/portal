@@ -67,7 +67,9 @@
     "settings": "Settings",
     "profile": "Profile",
     "application": "Application",
-    "projects": "Projects"
+    "projects": "Projects",
+    "help": "Help",
+    "userGuide": "User Guide"
   },
   "roles": {
     "owner": {

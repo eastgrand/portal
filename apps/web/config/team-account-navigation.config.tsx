@@ -1,4 +1,4 @@
-import { CreditCard, FolderKanban, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { CreditCard, FolderKanban, HelpCircle, LayoutDashboard, Settings, Users } from 'lucide-react';
 
 import { NavigationConfigSchema } from '@kit/ui/navigation-schema';
 
@@ -46,6 +46,18 @@ const getRoutes = (account: string) => [
           }
         : undefined,
     ].filter(Boolean),
+  },
+  {
+    label: 'common:routes.help',
+    collapsible: false,
+    children: [
+      {
+        label: 'common:routes.userGuide',
+        path: '/docs/user-guide.pdf',
+        Icon: <HelpCircle className={iconClasses} />,
+        // This will be handled with an onClick in the component
+      },
+    ],
   },
 ];
 
