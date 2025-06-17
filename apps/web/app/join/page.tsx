@@ -109,10 +109,20 @@ async function JoinTeamAccountPage(props: JoinTeamAccountPageProps) {
   const signOutNext = `${pathsConfig.auth.signIn}?invite_token=${token}`;
 
   // once the user accepts the invitation, we redirect them to the projects page
-  const projectsPath = pathsConfig.app.projects.replace(
-    '[account]',
-    invitation.account.slug,
-  );
+  // Make sure to use a hardcoded path to avoid any template string issues
+  const projectsPath = `/home/${invitation.account.slug}/projects`;
+  
+  // Log invitation details for debugging
+  const { getLogger } = await import('@kit/shared/logger');
+  const logger = await getLogger();
+  logger.info({
+    name: 'join-team-account-debug',
+    invitationToken: token,
+    accountId: invitation.account.id,
+    accountSlug: invitation.account.slug,
+    redirectPath: projectsPath,
+    userId: auth.data.id,
+  }, 'Debug information for team invitation acceptance');
 
   const email = auth.data.email ?? '';
 

@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 import { enhanceAction } from '@kit/next/actions';
+import { getLogger } from '@kit/shared/logger';
 import { getSupabaseServerAdminClient } from '@kit/supabase/server-admin-client';
 import { getSupabaseServerClient } from '@kit/supabase/server-client';
 
@@ -98,10 +99,18 @@ export const updateInvitationAction = enhanceAction(
 export const acceptInvitationAction = enhanceAction(
   async (data: FormData, user) => {
     const client = getSupabaseServerClient();
+    const logger = await getLogger();
 
+    // Parse the form data
     const { inviteToken, nextPath } = AcceptInvitationSchema.parse(
       Object.fromEntries(data),
     );
+
+    logger.info({ 
+      inviteToken, 
+      nextPath, 
+      userId: user.id 
+    }, 'Starting invitation acceptance process');
 
     // create the services
     const perSeatBillingService = createAccountPerSeatBillingService(client);
@@ -118,27 +127,54 @@ export const acceptInvitationAction = enhanceAction(
 
     // If the account ID is not present, throw an error
     if (!accountId) {
+      logger.error({ inviteToken }, 'Failed to accept invitation - no account ID returned');
       throw new Error('Failed to accept invitation');
     }
+
+    logger.info({ accountId }, 'Successfully accepted invitation, retrieving account slug');
 
     // Increase the seats for the account
     await perSeatBillingService.increaseSeats(accountId);
 
-    // Get the account slug for the redirect
-    const { data: account } = await client
-      .from('accounts')
-      .select('slug')
-      .eq('id', accountId)
-      .single();
+    try {
+      // Get the account slug for the redirect
+      const { data: account, error } = await client
+        .from('accounts')
+        .select('slug')
+        .eq('id', accountId)
+        .single();
 
-    if (!account?.slug) {
-      throw new Error('Failed to get account slug for redirect');
+      if (error || !account?.slug) {
+        logger.error({ 
+          accountId, 
+          error: error?.message || 'No slug returned' 
+        }, 'Failed to get account slug for redirect');
+        
+        // Fallback to home page if we can't get the slug
+        logger.info('Redirecting to fallback home page');
+        return redirect('/home/projects');
+      }
+
+      // Construct the correct redirect URL using the account slug
+      const redirectUrl = nextPath.replace(/\[account\]/g, account.slug);
+      
+      logger.info({ 
+        accountId,
+        accountSlug: account.slug,
+        nextPath,
+        redirectUrl
+      }, 'Redirecting after successful invitation acceptance');
+
+      return redirect(redirectUrl);
+    } catch (error) {
+      logger.error({ 
+        accountId, 
+        error: error instanceof Error ? error.message : String(error) 
+      }, 'Exception while processing redirect after invitation acceptance');
+      
+      // Fallback to home page if there's an error
+      return redirect('/home/projects');
     }
-
-    // Construct the correct redirect URL using the account slug
-    const redirectUrl = nextPath.replace('[account]', account.slug);
-
-    return redirect(redirectUrl);
   },
   {},
 );
