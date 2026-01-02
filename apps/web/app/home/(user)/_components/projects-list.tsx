@@ -12,7 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@kit/ui/table";
-import { Users, ExternalLink, Maximize2, X, Code2, Copy, Check } from "lucide-react";
+import { Users, ExternalLink, Maximize2, X, Code2, Copy, Check, Rocket } from "lucide-react";
+import { OpenAppButton } from '../../[account]/projects/[project]/_components/open-app-button';
 import MembersDialog from './members-dialog';
 import {
   Dialog,
@@ -200,15 +201,20 @@ export default function ProjectsList({ projects, userRole }: ProjectsListProps) 
                 <TableCell>
                   <div className="flex space-x-2">
                     <ProjectIframeDialog appUrl={project.app_url}>
-                      <Button 
+                      <Button
                         variant="default"
                         size="sm"
                         className="bg-green-600 hover:bg-green-700"
                       >
                         <Maximize2 className="h-4 w-4 mr-1" />
-                        Open
+                        Preview
                       </Button>
                     </ProjectIframeDialog>
+                    <OpenAppButton
+                      projectId={project.id}
+                      size="sm"
+                      className="bg-purple-600 hover:bg-purple-700"
+                    />
                     <MembersDialog 
                       projectId={project.id}
                       currentUserRole={userRole}
