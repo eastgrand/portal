@@ -12,6 +12,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "2.47.10"
+  },
   "devDependencies": {
     "@kit/eslint-config": "workspace:*",
     "@kit/prettier-config": "workspace:*",

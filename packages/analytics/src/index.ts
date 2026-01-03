@@ -7,3 +7,18 @@ export const analytics: AnalyticsManager = createAnalyticsManager({
     null: () => NullAnalyticsService,
   },
 });
+
+// Activity tracking for admin analytics
+export {
+  ActivityTracker,
+  getActivityTracker,
+  createActivityTracker,
+} from './activity-tracker';
+
+export type {
+  ActivityType,
+  ActivityData,
+  TrackActivityParams,
+  UserActivityStats,
+  AccountActivityStats,
+} from './activity-tracker';
